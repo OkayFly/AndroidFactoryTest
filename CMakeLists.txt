@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 
-project(factorytest C)
+project(factory-test-server C)
 cmake_minimum_required(VERSION 2.6)
-add_executable(factorytest factorytest.c)
-target_link_libraries(factorytest rt)
-install(TARGETS factorytest DESTINATION bin)
+add_executable(factory-test-server factory-test-server.c)
+target_link_libraries(factory-test-server rt)
+install(TARGETS factory-test-server DESTINATION bin)

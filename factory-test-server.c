@@ -17,6 +17,18 @@
 #include <linux/serial.h>
 #include <errno.h>
 
+#include "factory-test-server.h"
+
+
+#define LENUSERINPUT 1024
+
+static const char commandlist[NCOMMANDS][10] = 
+{
+	"START",
+	"END"
+};
+
+
 /*
  * glibc for MIPS has its own bits/termios.h which does not define
  * CMSPAR, so we vampirise the value from the generic bits/termios.h
@@ -590,12 +602,33 @@ static int diff_ms(const struct timespec *t1, const struct timespec *t2)
 	}
 	return (diff.tv_sec * 1000 + diff.tv_nsec/1000000);
 }
-
+struct command* userinputtocommand(char s[LENUSERINPUT]);
 int main(int argc, char * argv[])
 {
-	printf("Linux serial test app\n");
-	printf("argc:%d\n",argc);
-	int argc1 = 8;
+
+	printf("______________________________________________________________________________________\n");
+	printf("______________________________________________________________________________________\n\n");
+	printf("\tAndroid factory test ===>>>\n");
+	printf("______________________________________________________________________________________\n");
+	printf("______________________________________________________________________________________\n\n");
+
+	int test_count = 0;
+	char userinput[LENUSERINPUT];
+	struct command* cmd;
+
+	while(1)
+	{
+		printf("\t^_^ please input [START] and click [Enter] end for the [%d]'s factory test\t\n:", ++test_count);
+		fgets(userinput, LENUSERINPUT, stdin);
+		cmd = userinputtocommand(userinput);
+
+
+	}
+	
+
+	
+	
+	//int argc1 = 8;
 	/*
 	char *argarray[] = {"serialtest", "-s",  "-e",  "-p", "/dev/ttyS",  "-c",  "-l", "250"};
 	
@@ -801,4 +834,60 @@ int main(int argc, char * argv[])
 	long long int result = llabs(_write_count - _read_count) + _error_count;
 
 	return (result > 125) ? 125 : (int)result;
+}
+
+
+static void append_count(struct command* c, char* s)
+{
+	c->count = atoi(s);
+}
+
+
+struct command* userinputtocommand(char s[LENUSERINPUT])
+{
+	struct command* cmd = (struct command*) malloc(sizeof(struct command));
+	cmd->comid = -1;
+	cmd->count = -1;
+	int i, j;
+	char* token;
+	char* savestate;
+	for(i=0; i++; s=NULL)
+	{
+		token = strtok_r(s, " \t\n", &savestate);
+		printf("token:%s",token);
+		if(token == NULL)
+			break;
+
+		if(cmd->comid == -1 )
+		{
+			for(j=0; i<NCOMMANDS; j++)
+			{
+				if(!strcmp(token, commandlist[j]))
+				{
+					cmd->comid = j;
+					break;
+				}
+			}
+		}
+		else
+		{
+			if(cmd->comid == START)
+			{
+				append_count(cmd, token);
+			}
+		}
+
+	}
+
+	if(cmd->comid != -1)
+	{
+		return cmd;
+	}
+	else
+	{
+		fprintf(stderr, "\t Error parsing command\n");
+		return NULL;
+	}
+	
+
 }

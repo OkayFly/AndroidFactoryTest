@@ -56,6 +56,17 @@ CMAKE_BINARY_DIR = /home/roc/Documents/FactoryTest
 #=============================================================================
 # Targets provided globally by CMake.
 
+# Special rule for the target edit_cache
+edit_cache:
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "No interactive CMake dialog available..."
+	/usr/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
+.PHONY : edit_cache
+
+# Special rule for the target edit_cache
+edit_cache/fast: edit_cache
+
+.PHONY : edit_cache/fast
+
 # Special rule for the target install/strip
 install/strip: preinstall
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing the project stripped..."
@@ -79,17 +90,6 @@ install/local/fast: preinstall/fast
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing only the local directory..."
 	/usr/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
 .PHONY : install/local/fast
-
-# Special rule for the target edit_cache
-edit_cache:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "No interactive CMake dialog available..."
-	/usr/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
-.PHONY : edit_cache
-
-# Special rule for the target edit_cache
-edit_cache/fast: edit_cache
-
-.PHONY : edit_cache/fast
 
 # Special rule for the target rebuild_cache
 rebuild_cache:
@@ -157,44 +157,44 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named factorytest
+# Target rules for targets named factory-test-server
 
 # Build rule for target.
-factorytest: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 factorytest
-.PHONY : factorytest
+factory-test-server: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 factory-test-server
+.PHONY : factory-test-server
 
 # fast build rule for target.
-factorytest/fast:
-	$(MAKE) -f CMakeFiles/factorytest.dir/build.make CMakeFiles/factorytest.dir/build
-.PHONY : factorytest/fast
+factory-test-server/fast:
+	$(MAKE) -f CMakeFiles/factory-test-server.dir/build.make CMakeFiles/factory-test-server.dir/build
+.PHONY : factory-test-server/fast
 
-factorytest.o: factorytest.c.o
+factory-test-server.o: factory-test-server.c.o
 
-.PHONY : factorytest.o
+.PHONY : factory-test-server.o
 
 # target to build an object file
-factorytest.c.o:
-	$(MAKE) -f CMakeFiles/factorytest.dir/build.make CMakeFiles/factorytest.dir/factorytest.c.o
-.PHONY : factorytest.c.o
+factory-test-server.c.o:
+	$(MAKE) -f CMakeFiles/factory-test-server.dir/build.make CMakeFiles/factory-test-server.dir/factory-test-server.c.o
+.PHONY : factory-test-server.c.o
 
-factorytest.i: factorytest.c.i
+factory-test-server.i: factory-test-server.c.i
 
-.PHONY : factorytest.i
+.PHONY : factory-test-server.i
 
 # target to preprocess a source file
-factorytest.c.i:
-	$(MAKE) -f CMakeFiles/factorytest.dir/build.make CMakeFiles/factorytest.dir/factorytest.c.i
-.PHONY : factorytest.c.i
+factory-test-server.c.i:
+	$(MAKE) -f CMakeFiles/factory-test-server.dir/build.make CMakeFiles/factory-test-server.dir/factory-test-server.c.i
+.PHONY : factory-test-server.c.i
 
-factorytest.s: factorytest.c.s
+factory-test-server.s: factory-test-server.c.s
 
-.PHONY : factorytest.s
+.PHONY : factory-test-server.s
 
 # target to generate assembly for a file
-factorytest.c.s:
-	$(MAKE) -f CMakeFiles/factorytest.dir/build.make CMakeFiles/factorytest.dir/factorytest.c.s
-.PHONY : factorytest.c.s
+factory-test-server.c.s:
+	$(MAKE) -f CMakeFiles/factory-test-server.dir/build.make CMakeFiles/factory-test-server.dir/factory-test-server.c.s
+.PHONY : factory-test-server.c.s
 
 # Help Target
 help:
@@ -202,16 +202,16 @@ help:
 	@echo "... all (the default if no target is provided)"
 	@echo "... clean"
 	@echo "... depend"
+	@echo "... edit_cache"
 	@echo "... install/strip"
 	@echo "... install/local"
-	@echo "... edit_cache"
-	@echo "... factorytest"
+	@echo "... factory-test-server"
 	@echo "... rebuild_cache"
 	@echo "... list_install_components"
 	@echo "... install"
-	@echo "... factorytest.o"
-	@echo "... factorytest.i"
-	@echo "... factorytest.s"
+	@echo "... factory-test-server.o"
+	@echo "... factory-test-server.i"
+	@echo "... factory-test-server.s"
 .PHONY : help
 
 

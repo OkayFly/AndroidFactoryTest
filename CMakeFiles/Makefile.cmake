@@ -39,5 +39,5 @@ set(CMAKE_MAKEFILE_PRODUCTS
 
 # Dependency information for all targets:
 set(CMAKE_DEPEND_INFO_FILES
-  "CMakeFiles/factorytest.dir/DependInfo.cmake"
+  "CMakeFiles/factory-test-server.dir/DependInfo.cmake"
   )
