@@ -169,6 +169,33 @@ factory-test-server/fast:
 	$(MAKE) -f CMakeFiles/factory-test-server.dir/build.make CMakeFiles/factory-test-server.dir/build
 .PHONY : factory-test-server/fast
 
+data.o: data.c.o
+
+.PHONY : data.o
+
+# target to build an object file
+data.c.o:
+	$(MAKE) -f CMakeFiles/factory-test-server.dir/build.make CMakeFiles/factory-test-server.dir/data.c.o
+.PHONY : data.c.o
+
+data.i: data.c.i
+
+.PHONY : data.i
+
+# target to preprocess a source file
+data.c.i:
+	$(MAKE) -f CMakeFiles/factory-test-server.dir/build.make CMakeFiles/factory-test-server.dir/data.c.i
+.PHONY : data.c.i
+
+data.s: data.c.s
+
+.PHONY : data.s
+
+# target to generate assembly for a file
+data.c.s:
+	$(MAKE) -f CMakeFiles/factory-test-server.dir/build.make CMakeFiles/factory-test-server.dir/data.c.s
+.PHONY : data.c.s
+
 factory-test-server.o: factory-test-server.c.o
 
 .PHONY : factory-test-server.o
@@ -209,6 +236,9 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... list_install_components"
 	@echo "... install"
+	@echo "... data.o"
+	@echo "... data.i"
+	@echo "... data.s"
 	@echo "... factory-test-server.o"
 	@echo "... factory-test-server.i"
 	@echo "... factory-test-server.s"

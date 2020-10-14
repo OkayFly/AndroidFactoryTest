@@ -6,41 +6,17 @@
 
 #IncludeRegexTransform: 
 
-/home/roc/Documents/FactoryTest/factory-test-server.c
-stdio.h
--
-termios.h
--
-unistd.h
--
-sys/types.h
--
-sys/stat.h
--
-sys/ioctl.h
--
-fcntl.h
--
+/home/roc/Documents/FactoryTest/data.c
+data.h
+/home/roc/Documents/FactoryTest/data.h
+stdbool.h
+/home/roc/Documents/FactoryTest/stdbool.h
 stdlib.h
--
-strings.h
--
-string.h
--
-poll.h
--
-unistd.h
--
-getopt.h
--
-time.h
--
-linux/serial.h
--
-errno.h
--
-factory-test-server.h
-/home/roc/Documents/FactoryTest/factory-test-server.h
+/home/roc/Documents/FactoryTest/stdlib.h
+stdio.h
+/home/roc/Documents/FactoryTest/stdio.h
 
-/home/roc/Documents/FactoryTest/factory-test-server.h
+/home/roc/Documents/FactoryTest/data.h
+stdbool.h
+-
 

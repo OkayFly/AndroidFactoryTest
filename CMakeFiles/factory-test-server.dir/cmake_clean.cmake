@@ -1,5 +1,6 @@
 file(REMOVE_RECURSE
   "CMakeFiles/factory-test-server.dir/factory-test-server.c.o"
+  "CMakeFiles/factory-test-server.dir/data.c.o"
   "factory-test-server.pdb"
   "factory-test-server"
 )

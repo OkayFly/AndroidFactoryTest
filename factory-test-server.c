@@ -16,9 +16,10 @@
 #include <time.h>
 #include <linux/serial.h>
 #include <errno.h>
+#include <stdbool.h>
 
 #include "factory-test-server.h"
-
+#include "data.h"
 
 #define LENUSERINPUT 1024
 
@@ -603,6 +604,11 @@ static int diff_ms(const struct timespec *t1, const struct timespec *t2)
 	return (diff.tv_sec * 1000 + diff.tv_nsec/1000000);
 }
 struct command* userinputtocommand(char s[LENUSERINPUT]);
+
+#define TTYS3 "/dev/ttyS3"
+#define USB0 "/dev/ttyUSB0"
+
+void serial_process(char* serial);
 int main(int argc, char * argv[])
 {
 
@@ -618,9 +624,19 @@ int main(int argc, char * argv[])
 
 	while(1)
 	{
-		printf("\t^_^ please input [START] and click [Enter] end for the [%d]'s factory test\t\n:", ++test_count);
+		printf("\t^_^ please input [START] and click [Enter] end for the [%d]'s factory test^_^\t\n:", ++test_count);
 		fgets(userinput, LENUSERINPUT, stdin);
 		cmd = userinputtocommand(userinput);
+		if(cmd == NULL)
+			continue;
+		printf("*****************************************\n");
+		printf("*****************************************\n");
+		printf("***************  Step1: ttyS3  **********\n");
+		printf("*****************************************\n");
+		printf("*****************************************\n");
+		printf("**\t open /dev/ttyS3\n");
+		serial_process(USB0);
+		//printf("**\t wait receive cpu id ===> \n");
 
 
 	}
@@ -837,24 +853,72 @@ int main(int argc, char * argv[])
 }
 
 
+bool check_count(const char* p)
+{
+	bool ret = true;
+
+	if(p == NULL)
+		return false;
+	else
+	{
+		while(*p != '\0')
+		{
+			if(*p <= '9' && *p++ >= '0')
+				continue;
+			else
+			{
+				return false;
+			}
+			
+		}
+	}
+	
+
+	return ret;
+}
 static void append_count(struct command* c, char* s)
 {
-	c->count = atoi(s);
+	if(check_count(s))
+		c->count = atoi(s);
+	else
+	{
+		printf("--_--%s is not count\n");
+	}
+	
+	
 }
 
+static char* enum2str(int comid)
+{
+	switch (comid)
+	{
+	case START:
+		return "START";
+		break;
+	case END:
+		return "END";
+		break;
+	
+	default:
+		break;
+	}
+
+	return NULL;
+}
 
 struct command* userinputtocommand(char s[LENUSERINPUT])
 {
+	//printf("userinput:%s\n",s);
 	struct command* cmd = (struct command*) malloc(sizeof(struct command));
 	cmd->comid = -1;
 	cmd->count = -1;
 	int i, j;
 	char* token;
 	char* savestate;
-	for(i=0; i++; s=NULL)
+	for(i=0; ;i++, s=NULL)
 	{
 		token = strtok_r(s, " \t\n", &savestate);
-		printf("token:%s",token);
+		//printf("token:%s\n",token);
 		if(token == NULL)
 			break;
 
@@ -879,15 +943,141 @@ struct command* userinputtocommand(char s[LENUSERINPUT])
 
 	}
 
-	if(cmd->comid != -1)
+	if(cmd->comid != -1 && cmd->count != -1)
 	{
+		printf("\t\tcmd:[%s]\n", enum2str(cmd->comid));
+		printf("\t\tcount:[%d]\n",cmd->count);
 		return cmd;
 	}
 	else
 	{
+		if(cmd->comid == -1)
+			printf("Please input [START] \n");
+		else
+		{
+			printf("pleas after [START] input count num\n");
+		}
+		
 		fprintf(stderr, "\t Error parsing command\n");
 		return NULL;
 	}
+
+}
+
+
+
+static void serial_process_read_data(void)
+{
+	unsigned char rb[95] = {};
+	unsigned char data[95] = {};
+	int data_length;
+	//unsigned char rb[1024];
+	int c = read(_fd, &rb, sizeof(rb));
+
+
+	if(get_data(rb, c, data, &data_length) == DATA_PROCESS_SUCCESS)
+	{
+		
+		printf("get data:%s, length[%d]\n",data, data_length);
+
+		for(int i=0; i<data_length; i++)
+		{
+			printf("\t\t %c\t", data[i]);
+		}
+		process_data(data, data_length);
 	
+	}
+
+
+
+	//if(serial_unpack_for_cpuid(rb))
+	{
+	//	printf("**\t get data:%s\n",data);
+	//	printf("**\t {OK} get cpuID[]\n");
+	}
+
+
+	if (c > 0) {
+		if (_cl_rx_dump) {
+			if (_cl_rx_dump_ascii)
+				dump_data_ascii(rb, c);
+			else
+				dump_data(rb, c);
+		}
+
+		// verify read count is incrementing
+		int i;
+		for (i = 0; i < c; i++) {
+			printf("\n**\t read:[%c]",rb[i]);
+			if (rb[i] != _read_count_value) {
+				if (_cl_dump_err) {
+					printf("Error, count: %lld, expected %02x, got %02x\n",
+							_read_count + i, _read_count_value, rb[i]);
+				}
+				_error_count++;
+				if (_cl_stop_on_error) {
+					dump_serial_port_stats();
+					exit(1);
+				}
+				_read_count_value = rb[i];
+			}
+			_read_count_value = next_count_value(_read_count_value);
+		}
+		printf("\n");
+		printf("rendcount:%d\n", _read_count);
+		_read_count += c;
+	}
+}
+
+void serial_process(char* serial)
+{
+	printf("**\t serail_process:%s\n", serial);
+	int baud = B115200;
+	_cl_port = serial;
+	setup_serial_port(baud);
+	clear_custom_speed_flag();
+	set_modem_lines(_fd, _cl_loopback ? TIOCM_LOOP : 0, TIOCM_LOOP);
+
+	struct pollfd serial_poll;
+	serial_poll.fd = _fd;
+	if(!_cl_no_rx)
+		serial_poll.events |= POLLIN;
+	else
+	{
+		serial_poll.events &= ~POLLIN;
+	}
+	if(!_cl_no_tx)
+		serial_poll.events |= POLLOUT;
+	else
+	{
+		serial_poll.events &= ~POLLOUT;
+	}
+
+
+	printf("** \t wait receive cpu ID\n");
+	struct timespec start_time, last_time, last_read, last_write;
+	clock_gettime(CLOCK_MONOTONIC, &start_time);
+	last_time = start_time;
+	last_read = start_time;
+	last_write = start_time;
+
+	while(!(_cl_no_rx && _cl_no_tx))
+	{
+		struct timespec current;
+		int retval = poll(&serial_poll, 1, 1000);
+		clock_gettime(CLOCK_MONOTONIC, &current);
+
+		if(retval == -1)
+		{
+			perror("**\t poll()");
+		}
+		else if(retval)
+		{
+			serial_process_read_data();
+			last_read = current;
+		}
+
+
+	}
 
 }
