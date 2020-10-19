@@ -56,17 +56,6 @@ CMAKE_BINARY_DIR = /home/roc/Documents/FactoryTest
 #=============================================================================
 # Targets provided globally by CMake.
 
-# Special rule for the target edit_cache
-edit_cache:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "No interactive CMake dialog available..."
-	/usr/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
-.PHONY : edit_cache
-
-# Special rule for the target edit_cache
-edit_cache/fast: edit_cache
-
-.PHONY : edit_cache/fast
-
 # Special rule for the target install/strip
 install/strip: preinstall
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Installing the project stripped..."
@@ -91,6 +80,17 @@ install/local/fast: preinstall/fast
 	/usr/bin/cmake -DCMAKE_INSTALL_LOCAL_ONLY=1 -P cmake_install.cmake
 .PHONY : install/local/fast
 
+# Special rule for the target edit_cache
+edit_cache:
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "No interactive CMake dialog available..."
+	/usr/bin/cmake -E echo No\ interactive\ CMake\ dialog\ available.
+.PHONY : edit_cache
+
+# Special rule for the target edit_cache
+edit_cache/fast: edit_cache
+
+.PHONY : edit_cache/fast
+
 # Special rule for the target rebuild_cache
 rebuild_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
@@ -101,16 +101,6 @@ rebuild_cache:
 rebuild_cache/fast: rebuild_cache
 
 .PHONY : rebuild_cache/fast
-
-# Special rule for the target list_install_components
-list_install_components:
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Available install components are: \"Unspecified\""
-.PHONY : list_install_components
-
-# Special rule for the target list_install_components
-list_install_components/fast: list_install_components
-
-.PHONY : list_install_components/fast
 
 # Special rule for the target install
 install: preinstall
@@ -123,6 +113,16 @@ install/fast: preinstall/fast
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Install the project..."
 	/usr/bin/cmake -P cmake_install.cmake
 .PHONY : install/fast
+
+# Special rule for the target list_install_components
+list_install_components:
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Available install components are: \"Unspecified\""
+.PHONY : list_install_components
+
+# Special rule for the target list_install_components
+list_install_components/fast: list_install_components
+
+.PHONY : list_install_components/fast
 
 # The main all target
 all: cmake_check_build_system
@@ -157,17 +157,44 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named factory-test-server
+# Target rules for targets named factory_test_server
 
 # Build rule for target.
-factory-test-server: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 factory-test-server
-.PHONY : factory-test-server
+factory_test_server: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 factory_test_server
+.PHONY : factory_test_server
 
 # fast build rule for target.
-factory-test-server/fast:
-	$(MAKE) -f CMakeFiles/factory-test-server.dir/build.make CMakeFiles/factory-test-server.dir/build
-.PHONY : factory-test-server/fast
+factory_test_server/fast:
+	$(MAKE) -f CMakeFiles/factory_test_server.dir/build.make CMakeFiles/factory_test_server.dir/build
+.PHONY : factory_test_server/fast
+
+can_test.o: can_test.c.o
+
+.PHONY : can_test.o
+
+# target to build an object file
+can_test.c.o:
+	$(MAKE) -f CMakeFiles/factory_test_server.dir/build.make CMakeFiles/factory_test_server.dir/can_test.c.o
+.PHONY : can_test.c.o
+
+can_test.i: can_test.c.i
+
+.PHONY : can_test.i
+
+# target to preprocess a source file
+can_test.c.i:
+	$(MAKE) -f CMakeFiles/factory_test_server.dir/build.make CMakeFiles/factory_test_server.dir/can_test.c.i
+.PHONY : can_test.c.i
+
+can_test.s: can_test.c.s
+
+.PHONY : can_test.s
+
+# target to generate assembly for a file
+can_test.c.s:
+	$(MAKE) -f CMakeFiles/factory_test_server.dir/build.make CMakeFiles/factory_test_server.dir/can_test.c.s
+.PHONY : can_test.c.s
 
 data.o: data.c.o
 
@@ -175,7 +202,7 @@ data.o: data.c.o
 
 # target to build an object file
 data.c.o:
-	$(MAKE) -f CMakeFiles/factory-test-server.dir/build.make CMakeFiles/factory-test-server.dir/data.c.o
+	$(MAKE) -f CMakeFiles/factory_test_server.dir/build.make CMakeFiles/factory_test_server.dir/data.c.o
 .PHONY : data.c.o
 
 data.i: data.c.i
@@ -184,7 +211,7 @@ data.i: data.c.i
 
 # target to preprocess a source file
 data.c.i:
-	$(MAKE) -f CMakeFiles/factory-test-server.dir/build.make CMakeFiles/factory-test-server.dir/data.c.i
+	$(MAKE) -f CMakeFiles/factory_test_server.dir/build.make CMakeFiles/factory_test_server.dir/data.c.i
 .PHONY : data.c.i
 
 data.s: data.c.s
@@ -193,35 +220,89 @@ data.s: data.c.s
 
 # target to generate assembly for a file
 data.c.s:
-	$(MAKE) -f CMakeFiles/factory-test-server.dir/build.make CMakeFiles/factory-test-server.dir/data.c.s
+	$(MAKE) -f CMakeFiles/factory_test_server.dir/build.make CMakeFiles/factory_test_server.dir/data.c.s
 .PHONY : data.c.s
 
-factory-test-server.o: factory-test-server.c.o
+factory_test_function.o: factory_test_function.c.o
 
-.PHONY : factory-test-server.o
+.PHONY : factory_test_function.o
 
 # target to build an object file
-factory-test-server.c.o:
-	$(MAKE) -f CMakeFiles/factory-test-server.dir/build.make CMakeFiles/factory-test-server.dir/factory-test-server.c.o
-.PHONY : factory-test-server.c.o
+factory_test_function.c.o:
+	$(MAKE) -f CMakeFiles/factory_test_server.dir/build.make CMakeFiles/factory_test_server.dir/factory_test_function.c.o
+.PHONY : factory_test_function.c.o
 
-factory-test-server.i: factory-test-server.c.i
+factory_test_function.i: factory_test_function.c.i
 
-.PHONY : factory-test-server.i
+.PHONY : factory_test_function.i
 
 # target to preprocess a source file
-factory-test-server.c.i:
-	$(MAKE) -f CMakeFiles/factory-test-server.dir/build.make CMakeFiles/factory-test-server.dir/factory-test-server.c.i
-.PHONY : factory-test-server.c.i
+factory_test_function.c.i:
+	$(MAKE) -f CMakeFiles/factory_test_server.dir/build.make CMakeFiles/factory_test_server.dir/factory_test_function.c.i
+.PHONY : factory_test_function.c.i
 
-factory-test-server.s: factory-test-server.c.s
+factory_test_function.s: factory_test_function.c.s
 
-.PHONY : factory-test-server.s
+.PHONY : factory_test_function.s
 
 # target to generate assembly for a file
-factory-test-server.c.s:
-	$(MAKE) -f CMakeFiles/factory-test-server.dir/build.make CMakeFiles/factory-test-server.dir/factory-test-server.c.s
-.PHONY : factory-test-server.c.s
+factory_test_function.c.s:
+	$(MAKE) -f CMakeFiles/factory_test_server.dir/build.make CMakeFiles/factory_test_server.dir/factory_test_function.c.s
+.PHONY : factory_test_function.c.s
+
+factory_test_server.o: factory_test_server.c.o
+
+.PHONY : factory_test_server.o
+
+# target to build an object file
+factory_test_server.c.o:
+	$(MAKE) -f CMakeFiles/factory_test_server.dir/build.make CMakeFiles/factory_test_server.dir/factory_test_server.c.o
+.PHONY : factory_test_server.c.o
+
+factory_test_server.i: factory_test_server.c.i
+
+.PHONY : factory_test_server.i
+
+# target to preprocess a source file
+factory_test_server.c.i:
+	$(MAKE) -f CMakeFiles/factory_test_server.dir/build.make CMakeFiles/factory_test_server.dir/factory_test_server.c.i
+.PHONY : factory_test_server.c.i
+
+factory_test_server.s: factory_test_server.c.s
+
+.PHONY : factory_test_server.s
+
+# target to generate assembly for a file
+factory_test_server.c.s:
+	$(MAKE) -f CMakeFiles/factory_test_server.dir/build.make CMakeFiles/factory_test_server.dir/factory_test_server.c.s
+.PHONY : factory_test_server.c.s
+
+serial_test.o: serial_test.c.o
+
+.PHONY : serial_test.o
+
+# target to build an object file
+serial_test.c.o:
+	$(MAKE) -f CMakeFiles/factory_test_server.dir/build.make CMakeFiles/factory_test_server.dir/serial_test.c.o
+.PHONY : serial_test.c.o
+
+serial_test.i: serial_test.c.i
+
+.PHONY : serial_test.i
+
+# target to preprocess a source file
+serial_test.c.i:
+	$(MAKE) -f CMakeFiles/factory_test_server.dir/build.make CMakeFiles/factory_test_server.dir/serial_test.c.i
+.PHONY : serial_test.c.i
+
+serial_test.s: serial_test.c.s
+
+.PHONY : serial_test.s
+
+# target to generate assembly for a file
+serial_test.c.s:
+	$(MAKE) -f CMakeFiles/factory_test_server.dir/build.make CMakeFiles/factory_test_server.dir/serial_test.c.s
+.PHONY : serial_test.c.s
 
 # Help Target
 help:
@@ -229,19 +310,28 @@ help:
 	@echo "... all (the default if no target is provided)"
 	@echo "... clean"
 	@echo "... depend"
-	@echo "... edit_cache"
 	@echo "... install/strip"
 	@echo "... install/local"
-	@echo "... factory-test-server"
+	@echo "... edit_cache"
+	@echo "... factory_test_server"
 	@echo "... rebuild_cache"
-	@echo "... list_install_components"
 	@echo "... install"
+	@echo "... list_install_components"
+	@echo "... can_test.o"
+	@echo "... can_test.i"
+	@echo "... can_test.s"
 	@echo "... data.o"
 	@echo "... data.i"
 	@echo "... data.s"
-	@echo "... factory-test-server.o"
-	@echo "... factory-test-server.i"
-	@echo "... factory-test-server.s"
+	@echo "... factory_test_function.o"
+	@echo "... factory_test_function.i"
+	@echo "... factory_test_function.s"
+	@echo "... factory_test_server.o"
+	@echo "... factory_test_server.i"
+	@echo "... factory_test_server.s"
+	@echo "... serial_test.o"
+	@echo "... serial_test.i"
+	@echo "... serial_test.s"
 .PHONY : help
 
 

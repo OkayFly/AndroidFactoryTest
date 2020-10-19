@@ -1,18 +1,15 @@
 #ifndef __ANDROID_FACTORY_TEST_SERVER_H__
 #define __ANDROID_FACTORY_TEST_SERVER_H__
 
-
-#define NCOMMANDS 2
-enum COMMAND
+//Factory Test Server state
+enum 
 {
-    START,
-    END,
+    FSM_TTYS1,
+    FSM_TTYS3,
+    FSM_CAN0,
+    FSM_CAN1,
+
 };
 
-struct command
-{
-    short int comid;
-    short int count;
-};
 
 #endif //__ANDROID_FACTORY_TEST_SERVER_H__

@@ -6,5 +6,5 @@ CMakeFiles/factory-test-server.dir/data.c.o: data.h
 
 CMakeFiles/factory-test-server.dir/factory-test-server.c.o: data.h
 CMakeFiles/factory-test-server.dir/factory-test-server.c.o: factory-test-server.c
-CMakeFiles/factory-test-server.dir/factory-test-server.c.o: factory-test-server.h
+CMakeFiles/factory-test-server.dir/factory-test-server.c.o: serial_test.h
 

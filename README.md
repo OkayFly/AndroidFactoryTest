@@ -21,3 +21,8 @@ Android Factory Test Server
 # Test Flow Control
     ## serail
     
+
+
+# Reference Project
+    https://github.com/cbrake/linux-serial-test
+

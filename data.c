@@ -2,12 +2,17 @@
 #include "stdbool.h"
 #include "stdlib.h"
 #include "stdio.h"
+#include "string.h"
 
 
 #define LENGTHBUF 1024
 
+
+
 #define DATA_HEAD (0xAA)
 #define DATA_TAIL (0x55)
+
+bool TESTFLAG = false;
 //#define DATA_TRANSLATE (0xCC)
 
 
@@ -52,12 +57,12 @@ DPStatus get_data( unsigned char* in,  int length, unsigned char* out, int* out_
 }
 
 
-void process_data(unsigned char* data, int length)
+void process_data(unsigned char* data, int length,AndriodProduct* product)
 {
     switch (data[0])
     {
     case CTRL_GET_MAC:
-        get_mac(data+1, length-1);
+        get_mac(data+1, length-1, product);
         break;
     case CTRL_GET_DATA:
         //get_mac(data+1, length-1);
@@ -71,13 +76,27 @@ void process_data(unsigned char* data, int length)
 
 }
 
-void get_mac(unsigned char* data, int length)
+void get_mac(unsigned char* data, int length, AndriodProduct* product)
 {
-    for(int i=0; i<length; i++)
+    printf("\t\t %s \t\t\n", __func__);
+    // for(int i=0; i<length; i++)
+    // {
+    //     printf("\t\t %02x \t\t", data[i]);
+    // }
+    if( strlen(product->cpu_sn) != 0 && strncmp(product->cpu_sn, data, length))
     {
-        printf("\t\t %02x \t\t", data[i]);
+        printf("\t\tError The Android product is not same!!!\n");
+        printf("product cpu sn:%s\n", product->cpu_sn);
+        printf("data:%s\n",data);
+        product->SAMECPU = false;
     }
-    save_data(data, data);
+    else if(strlen(product->cpu_sn) == 0)
+    {
+        memcpy(product->cpu_sn, data, length);
+        printf("product cpu sn:%s\n", product->cpu_sn);
+    }
+    TESTFLAG = true;
+    //save_data(data, data);
 }
 
 
@@ -107,8 +126,36 @@ void save_data(unsigned char* data, unsigned char* name)
     }
     printf("%s\n",filename);
     printf("save %s ok\n",filename);
+    TESTFLAG = true;
 
+}
 
+void save_test_result(AndriodProduct* product)
+{
+    printf("\n** \t\t %s\n",__func__);
+    FILE *fp;
+    unsigned  char* filename = (unsigned char*)malloc(strlen(product->cpu_sn)+5);
+    if(filename == NULL)
+        printf("error maclloc\n");
+    //fprintf(filename, "%s.txt",name);
+    memcpy(filename, product->cpu_sn, strlen(product->cpu_sn));
+    memcpy(filename+ strlen(product->cpu_sn), ".txt", sizeof(".txt"));
+    printf("filename:%s\n",filename);
 
+    if((fp = fopen(filename, "wb")) == NULL)
+    {
+        printf("\t\tXXX error cant open %s\n",filename);
+        return;
+    }
 
+    fprintf(fp, "%s",product->cpu_sn);
+    fclose(fp);
+    for(int i=0; i<30;i++)
+    {
+        printf(">");
+    }
+    printf("%s\n",filename);
+    printf("save %s ok\n",filename);
+    TESTFLAG = true;
+    free(filename);
 }

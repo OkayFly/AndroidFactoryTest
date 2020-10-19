@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+#include "serial_test.h"
 
 #include <stdio.h>
 #include <termios.h>
@@ -18,16 +19,11 @@
 #include <errno.h>
 #include <stdbool.h>
 
-#include "factory-test-server.h"
 #include "data.h"
+#include "factory_test_function.h"
 
-#define LENUSERINPUT 1024
 
-static const char commandlist[NCOMMANDS][10] = 
-{
-	"START",
-	"END"
-};
+extern bool TESTFLAG;
 
 
 /*
@@ -591,266 +587,6 @@ static void setup_serial_port(int baud)
 	}
 }
 
-static int diff_ms(const struct timespec *t1, const struct timespec *t2)
-{
-	struct timespec diff;
-
-	diff.tv_sec = t1->tv_sec - t2->tv_sec;
-	diff.tv_nsec = t1->tv_nsec - t2->tv_nsec;
-	if (diff.tv_nsec < 0) {
-		diff.tv_sec--;
-		diff.tv_nsec += 1000000000;
-	}
-	return (diff.tv_sec * 1000 + diff.tv_nsec/1000000);
-}
-struct command* userinputtocommand(char s[LENUSERINPUT]);
-
-#define TTYS3 "/dev/ttyS3"
-#define USB0 "/dev/ttyUSB0"
-
-void serial_process(char* serial);
-int main(int argc, char * argv[])
-{
-
-	printf("______________________________________________________________________________________\n");
-	printf("______________________________________________________________________________________\n\n");
-	printf("\tAndroid factory test ===>>>\n");
-	printf("______________________________________________________________________________________\n");
-	printf("______________________________________________________________________________________\n\n");
-
-	int test_count = 0;
-	char userinput[LENUSERINPUT];
-	struct command* cmd;
-
-	while(1)
-	{
-		printf("\t^_^ please input [START] and click [Enter] end for the [%d]'s factory test^_^\t\n:", ++test_count);
-		fgets(userinput, LENUSERINPUT, stdin);
-		cmd = userinputtocommand(userinput);
-		if(cmd == NULL)
-			continue;
-		printf("*****************************************\n");
-		printf("*****************************************\n");
-		printf("***************  Step1: ttyS3  **********\n");
-		printf("*****************************************\n");
-		printf("*****************************************\n");
-		printf("**\t open /dev/ttyS3\n");
-		serial_process(USB0);
-		//printf("**\t wait receive cpu id ===> \n");
-
-
-	}
-	
-
-	
-	
-	//int argc1 = 8;
-	/*
-	char *argarray[] = {"serialtest", "-s",  "-e",  "-p", "/dev/ttyS",  "-c",  "-l", "250"};
-	
-	printf("%s\n",*argarray);	
-	argc1 = sizeof(argarray);
-	printf("argc1:%d\n",argc1);
-	printf("intargc1:%d\n",sizeof(int));
-	for(int i=0; i<argc1; i++)
-	{
-		printf("%s ",argarray[i]);
-	}
-	printf("\n");
-
-	process_options(argc1, argarray);
-
-	*/
-	process_options(argc, argv);
-	if (!_cl_port) {
-		fprintf(stderr, "ERROR: Port argument required\n");
-		display_help();
-		return 1;
-	}
-
-	int baud = B115200;
-	printf("@@baud:%d\n",baud);
-
-	if (_cl_baud && !_cl_divisor)
-		baud = get_baud(_cl_baud);
-
-	if (baud <= 0 || _cl_divisor) {
-		printf("NOTE: non standard baud rate, trying custom divisor\n");
-		baud = B38400;
-		setup_serial_port(B38400);
-		set_baud_divisor(_cl_baud, _cl_divisor);
-	} else {
-		setup_serial_port(baud);
-		/*
-		 * The flag ASYNC_SPD_CUST might have already been set, so
-		 * clear it to avoid confusing the kernel uart dirver.
-		 */
-		clear_custom_speed_flag();
-	}
-
-	set_modem_lines(_fd, _cl_loopback ? TIOCM_LOOP : 0, TIOCM_LOOP);
-
-	if (_cl_single_byte >= 0) {
-		unsigned char data[2];
-		int bytes = 1;
-		int written;
-		data[0] = (unsigned char)_cl_single_byte;
-		if (_cl_another_byte >= 0) {
-			data[1] = (unsigned char)_cl_another_byte;
-			bytes++;
-		}
-		written = write(_fd, &data, bytes);
-		if (written < 0) {
-			perror("write()");
-			return 1;
-		} else if (written != bytes) {
-			fprintf(stderr, "ERROR: write() returned %d, not %d\n", written, bytes);
-			return 1;
-		}
-		return 0;
-	}
-
-	_write_size = (_cl_tx_bytes == 0) ? 95 : _cl_tx_bytes;
-
-	_write_data = malloc(_write_size);
-	if (_write_data == NULL) {
-		fprintf(stderr, "ERROR: Memory allocation failed\n");
-		return 1;
-	}
-
-	if (_cl_ascii_range) {
-		_read_count_value = _write_count_value = 32;
-	}
-
-	struct pollfd serial_poll;
-	serial_poll.fd = _fd;
-	if (!_cl_no_rx) {
-		serial_poll.events |= POLLIN;
-	} else {
-		serial_poll.events &= ~POLLIN;
-	}
-
-	if (!_cl_no_tx) {
-		serial_poll.events |= POLLOUT;
-	} else {
-		serial_poll.events &= ~POLLOUT;
-	}
-
-	struct timespec start_time, last_stat, last_timeout, last_read, last_write;
-
-	clock_gettime(CLOCK_MONOTONIC, &start_time);
-	last_stat = start_time;
-	last_timeout = start_time;
-	last_read = start_time;
-	last_write = start_time;
-
-	while (!(_cl_no_rx && _cl_no_tx)) {
-		struct timespec current;
-		int retval = poll(&serial_poll, 1, 1000);
-
-		clock_gettime(CLOCK_MONOTONIC, &current);
-
-		if (retval == -1) {
-			perror("poll()");
-		} else if (retval) {
-			if (serial_poll.revents & POLLIN) {
-				if (_cl_rx_delay) {
-					// only read if it has been rx-delay ms
-					// since the last read
-					if (diff_ms(&current, &last_read) > _cl_rx_delay) {
-						process_read_data();
-						last_read = current;
-					}
-				} else {
-					process_read_data();
-					last_read = current;
-				}
-			}
-
-			if (serial_poll.revents & POLLOUT) {
-				if (_cl_tx_delay) {
-					// only write if it has been tx-delay ms
-					// since the last write
-					if (diff_ms(&current, &last_write) > _cl_tx_delay) {
-						process_write_data();
-						last_write = current;
-					}
-				} else {
-					process_write_data();
-					last_write = current;
-				}
-			}
-		}
-
-		// Has it been at least a second since we reported a timeout?
-		if (diff_ms(&current, &last_timeout) > 1000) {
-			int rx_timeout, tx_timeout;
-
-			// Has it been over two seconds since we transmitted or received data?
-			rx_timeout = (!_cl_no_rx && diff_ms(&current, &last_read) > 2000);
-			tx_timeout = (!_cl_no_tx && diff_ms(&current, &last_write) > 2000);
-			// Special case - we don't want to warn about receive
-			// timeouts at the end of a loopback test (where we are
-			// no longer transmitting and the receive count equals
-			// the transmit count).
-			if (_cl_no_tx && _write_count != 0 && _write_count == _read_count) {
-				rx_timeout = 0;
-			}
-
-			if (rx_timeout || tx_timeout) {
-				const char *s;
-				if (rx_timeout) {
-					printf("%s: No data received for %.1fs.",
-					       _cl_port, (double)diff_ms(&current, &last_read) / 1000);
-					s = " ";
-				} else {
-					s = "";
-				}
-				if (tx_timeout) {
-					printf("%sNo data transmitted for %.1fs.",
-					       s, (double)diff_ms(&current, &last_write) / 1000);
-				}
-				printf("\n");
-				last_timeout = current;
-			}
-		}
-
-		if (_cl_stats) {
-			if (current.tv_sec - last_stat.tv_sec > 5) {
-				dump_serial_port_stats();
-				last_stat = current;
-			}
-		}
-
-		if (_cl_tx_time) {
-			if (current.tv_sec - start_time.tv_sec >= _cl_tx_time) {
-				_cl_tx_time = 0;
-				_cl_no_tx = 1;
-				serial_poll.events &= ~POLLOUT;
-				printf("Stopped transmitting.\n");
-			}
-		}
-
-		if (_cl_rx_time) {
-			if (current.tv_sec - start_time.tv_sec >= _cl_rx_time) {
-				_cl_rx_time = 0;
-				_cl_no_rx = 1;
-				serial_poll.events &= ~POLLIN;
-				printf("Stopped receiving.\n");
-			}
-		}
-	}
-
-	tcdrain(_fd);
-	dump_serial_port_stats();
-	set_modem_lines(_fd, 0, TIOCM_LOOP);
-	tcflush(_fd, TCIOFLUSH);
-	free(_cl_port);
-
-	long long int result = llabs(_write_count - _read_count) + _error_count;
-
-	return (result > 125) ? 125 : (int)result;
-}
 
 
 bool check_count(const char* p)
@@ -906,67 +642,11 @@ static char* enum2str(int comid)
 	return NULL;
 }
 
-struct command* userinputtocommand(char s[LENUSERINPUT])
-{
-	//printf("userinput:%s\n",s);
-	struct command* cmd = (struct command*) malloc(sizeof(struct command));
-	cmd->comid = -1;
-	cmd->count = -1;
-	int i, j;
-	char* token;
-	char* savestate;
-	for(i=0; ;i++, s=NULL)
-	{
-		token = strtok_r(s, " \t\n", &savestate);
-		//printf("token:%s\n",token);
-		if(token == NULL)
-			break;
-
-		if(cmd->comid == -1 )
-		{
-			for(j=0; i<NCOMMANDS; j++)
-			{
-				if(!strcmp(token, commandlist[j]))
-				{
-					cmd->comid = j;
-					break;
-				}
-			}
-		}
-		else
-		{
-			if(cmd->comid == START)
-			{
-				append_count(cmd, token);
-			}
-		}
-
-	}
-
-	if(cmd->comid != -1 && cmd->count != -1)
-	{
-		printf("\t\tcmd:[%s]\n", enum2str(cmd->comid));
-		printf("\t\tcount:[%d]\n",cmd->count);
-		return cmd;
-	}
-	else
-	{
-		if(cmd->comid == -1)
-			printf("Please input [START] \n");
-		else
-		{
-			printf("pleas after [START] input count num\n");
-		}
-		
-		fprintf(stderr, "\t Error parsing command\n");
-		return NULL;
-	}
-
-}
 
 
 
-static void serial_process_read_data(void)
+
+static void serial_process_read_data(AndriodProduct* product)
 {
 	unsigned char rb[95] = {};
 	unsigned char data[95] = {};
@@ -980,12 +660,11 @@ static void serial_process_read_data(void)
 		
 		printf("get data:%s, length[%d]\n",data, data_length);
 
-		for(int i=0; i<data_length; i++)
-		{
-			printf("\t\t %c\t", data[i]);
-		}
-		process_data(data, data_length);
-	
+		// for(int i=0; i<data_length; i++)
+		// {
+		// 	printf("\t\t %c\t", data[i]);
+		// }
+		process_data(data, data_length, product);
 	}
 
 
@@ -1008,7 +687,7 @@ static void serial_process_read_data(void)
 		// verify read count is incrementing
 		int i;
 		for (i = 0; i < c; i++) {
-			printf("\n**\t read:[%c]",rb[i]);
+			printf("\n**\t read:[%02x]",rb[i]);
 			if (rb[i] != _read_count_value) {
 				if (_cl_dump_err) {
 					printf("Error, count: %lld, expected %02x, got %02x\n",
@@ -1029,7 +708,7 @@ static void serial_process_read_data(void)
 	}
 }
 
-void serial_process(char* serial)
+void serial_process(char* serial,AndriodProduct* product)
 {
 	printf("**\t serail_process:%s\n", serial);
 	int baud = B115200;
@@ -1061,7 +740,7 @@ void serial_process(char* serial)
 	last_read = start_time;
 	last_write = start_time;
 
-	while(!(_cl_no_rx && _cl_no_tx))
+	while(!(_cl_no_rx && _cl_no_tx) && !TESTFLAG)
 	{
 		struct timespec current;
 		int retval = poll(&serial_poll, 1, 1000);
@@ -1073,11 +752,38 @@ void serial_process(char* serial)
 		}
 		else if(retval)
 		{
-			serial_process_read_data();
+			serial_process_read_data(product);
 			last_read = current;
+			
 		}
 
+		int  consum_tm = diff_ms(&current,&start_time);
+		//printf("\t %d\n",consum_tm);
+		if(diff_ms(&current,&start_time) >= 10000 )
+		{
+			printf("\t\t Error %s time consuming >5s but can't receive corrent data\n", serial);
+			TESTFLAG =true;
+		}
+		
 
 	}
 
+	//close serial
+	printf("**\t close serial:%s\n", serial);
+	fflush(stdout);
+	tcdrain(_fd);
+	dump_serial_port_stats();
+	set_modem_lines(_fd, 0, TIOCM_LOOP);
+	tcflush(_fd, TCIOFLUSH);
+	//free(_cl_port);
+
+
+	TESTFLAG = false;
+
+}
+
+void serial_test(AndriodProduct* product)
+{
+	serial_process(USBPort, product);
+	serial_process(USBPort, product);
 }

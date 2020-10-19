@@ -1,0 +1,1 @@
+/usr/bin/cc   -rdynamic CMakeFiles/factory_test_server.dir/factory_test_server.c.o CMakeFiles/factory_test_server.dir/data.c.o CMakeFiles/factory_test_server.dir/serial_test.c.o CMakeFiles/factory_test_server.dir/can_test.c.o CMakeFiles/factory_test_server.dir/factory_test_function.c.o  -o factory_test_server -lrt 
