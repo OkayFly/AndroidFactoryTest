@@ -23,7 +23,7 @@
 #include "factory_test_function.h"
 
 
-extern bool TESTFLAG;
+extern bool STOPTEST;
 
 
 /*
@@ -108,7 +108,8 @@ static void set_baud_divisor(int speed, int custom_divisor)
 	struct serial_struct ss;
 	if (ioctl(_fd, TIOCGSERIAL, &ss) < 0) {
 		perror("TIOCGSERIAL failed");
-		exit(1);
+		//exit(1);
+		return;
 	}
 
 	ss.flags = (ss.flags & ~ASYNC_SPD_MASK) | ASYNC_SPD_CUST;
@@ -129,7 +130,8 @@ static void set_baud_divisor(int speed, int custom_divisor)
 
 	if (ioctl(_fd, TIOCSSERIAL, &ss) < 0) {
 		perror("TIOCSSERIAL failed");
-		exit(1);
+		//exit(1);
+		return;
 	}
 }
 
@@ -148,7 +150,7 @@ static void clear_custom_speed_flag()
 
 	if (ioctl(_fd, TIOCSSERIAL, &ss) < 0) {
 		perror("TIOCSSERIAL failed");
-		exit(1);
+		//exit(1);
 	}
 }
 
@@ -213,14 +215,15 @@ static int get_baud(int baud)
 	}
 }
 
-void set_modem_lines(int fd, int bits, int mask)
+bool set_modem_lines(int fd, int bits, int mask)
 {
 	int status, ret;
 
 	ret = ioctl(fd, TIOCMGET, &status);
 	if (ret < 0) {
 		perror("TIOCMGET failed");
-		exit(1);
+		//exit(1);
+		return false;
 	}
 
 	status = (status & ~mask) | (bits & mask);
@@ -228,8 +231,11 @@ void set_modem_lines(int fd, int bits, int mask)
 	ret = ioctl(fd, TIOCMSET, &status);
 	if (ret < 0) {
 		perror("TIOCMSET failed");
-		exit(1);
+		//exit(1);
+		return false;
 	}
+
+	return true;
 }
 
 static void display_help(void)
@@ -512,7 +518,7 @@ static void process_write_data(void)
 }
 
 
-static void setup_serial_port(int baud)
+static bool setup_serial_port(int baud)
 {
 	struct termios newtio;
 	struct serial_rs485 rs485;
@@ -522,7 +528,8 @@ static void setup_serial_port(int baud)
 	if (_fd < 0) {
 		perror("Error opening serial port");
 		free(_cl_port);
-		exit(1);
+		//exit(1);
+		return false;
 	}
 
 	bzero(&newtio, sizeof(newtio)); /* clear struct for new port settings */
@@ -585,6 +592,8 @@ static void setup_serial_port(int baud)
 			perror("Error setting RS-232 mode");
 		}
 	}
+
+	return true;
 }
 
 
@@ -644,7 +653,19 @@ static char* enum2str(int comid)
 
 
 
-
+static void serial_process_write_data(AndriodProduct* product)
+{
+	char write_data[120];
+	write_data[0] = 0xAA;
+	write_data[1] = CTRL_GET_MAC;
+	memcpy(write_data+2, product->cpu_sn, strlen(product->cpu_sn));
+	write_data[2+strlen(product->cpu_sn)] = 0x55;
+	write_data[3+strlen(product->cpu_sn)] = '\0';
+	printf("\n\t write_data:%s\n",write_data);
+	
+	ssize_t c =write(_fd, write_data, strlen(write_data));
+	usleep(50000);
+}
 
 static void serial_process_read_data(AndriodProduct* product)
 {
@@ -665,6 +686,8 @@ static void serial_process_read_data(AndriodProduct* product)
 		// 	printf("\t\t %c\t", data[i]);
 		// }
 		process_data(data, data_length, product);
+		serial_process_write_data(product);
+
 	}
 
 
@@ -676,36 +699,36 @@ static void serial_process_read_data(AndriodProduct* product)
 	}
 
 
-	if (c > 0) {
-		if (_cl_rx_dump) {
-			if (_cl_rx_dump_ascii)
-				dump_data_ascii(rb, c);
-			else
-				dump_data(rb, c);
-		}
+	// if (c > 0) {
+	// 	if (_cl_rx_dump) {
+	// 		if (_cl_rx_dump_ascii)
+	// 			dump_data_ascii(rb, c);
+	// 		else
+	// 			dump_data(rb, c);
+	// 	}
 
-		// verify read count is incrementing
-		int i;
-		for (i = 0; i < c; i++) {
-			printf("\n**\t read:[%02x]",rb[i]);
-			if (rb[i] != _read_count_value) {
-				if (_cl_dump_err) {
-					printf("Error, count: %lld, expected %02x, got %02x\n",
-							_read_count + i, _read_count_value, rb[i]);
-				}
-				_error_count++;
-				if (_cl_stop_on_error) {
-					dump_serial_port_stats();
-					exit(1);
-				}
-				_read_count_value = rb[i];
-			}
-			_read_count_value = next_count_value(_read_count_value);
-		}
-		printf("\n");
-		printf("rendcount:%d\n", _read_count);
-		_read_count += c;
-	}
+	// 	// verify read count is incrementing
+	// 	int i;
+	// 	for (i = 0; i < c; i++) {
+	// 		printf("\n**\t read:[%02x]",rb[i]);
+	// 		if (rb[i] != _read_count_value) {
+	// 			if (_cl_dump_err) {
+	// 				printf("Error, count: %lld, expected %02x, got %02x\n",
+	// 						_read_count + i, _read_count_value, rb[i]);
+	// 			}
+	// 			_error_count++;
+	// 			if (_cl_stop_on_error) {
+	// 				dump_serial_port_stats();
+	// 				exit(1);
+	// 			}
+	// 			_read_count_value = rb[i];
+	// 		}
+	// 		_read_count_value = next_count_value(_read_count_value);
+	// 	}
+	// 	printf("\n");
+	// 	printf("rendcount:%d\n", _read_count);
+	// 	_read_count += c;
+	// }
 }
 
 void serial_process(char* serial,AndriodProduct* product)
@@ -713,9 +736,11 @@ void serial_process(char* serial,AndriodProduct* product)
 	printf("**\t serail_process:%s\n", serial);
 	int baud = B115200;
 	_cl_port = serial;
-	setup_serial_port(baud);
+	if(!setup_serial_port(baud))
+		return;
 	clear_custom_speed_flag();
-	set_modem_lines(_fd, _cl_loopback ? TIOCM_LOOP : 0, TIOCM_LOOP);
+	if(!set_modem_lines(_fd, _cl_loopback ? TIOCM_LOOP : 0, TIOCM_LOOP))
+		return;
 
 	struct pollfd serial_poll;
 	serial_poll.fd = _fd;
@@ -740,7 +765,7 @@ void serial_process(char* serial,AndriodProduct* product)
 	last_read = start_time;
 	last_write = start_time;
 
-	while(!(_cl_no_rx && _cl_no_tx) && !TESTFLAG)
+	while(!(_cl_no_rx && _cl_no_tx) && !STOPTEST)
 	{
 		struct timespec current;
 		int retval = poll(&serial_poll, 1, 1000);
@@ -762,7 +787,7 @@ void serial_process(char* serial,AndriodProduct* product)
 		if(diff_ms(&current,&start_time) >= 10000 )
 		{
 			printf("\t\t Error %s time consuming >5s but can't receive corrent data\n", serial);
-			TESTFLAG =true;
+			STOPTEST =true;
 		}
 		
 
@@ -772,13 +797,13 @@ void serial_process(char* serial,AndriodProduct* product)
 	printf("**\t close serial:%s\n", serial);
 	fflush(stdout);
 	tcdrain(_fd);
-	dump_serial_port_stats();
+	//dump_serial_port_stats();
 	set_modem_lines(_fd, 0, TIOCM_LOOP);
 	tcflush(_fd, TCIOFLUSH);
 	//free(_cl_port);
 
 
-	TESTFLAG = false;
+	STOPTEST = false;
 
 }
 

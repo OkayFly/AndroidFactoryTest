@@ -12,7 +12,7 @@
 #define DATA_HEAD (0xAA)
 #define DATA_TAIL (0x55)
 
-bool TESTFLAG = false;
+bool STOPTEST = false;
 //#define DATA_TRANSLATE (0xCC)
 
 
@@ -95,7 +95,7 @@ void get_mac(unsigned char* data, int length, AndriodProduct* product)
         memcpy(product->cpu_sn, data, length);
         printf("product cpu sn:%s\n", product->cpu_sn);
     }
-    TESTFLAG = true;
+    STOPTEST = true;
     //save_data(data, data);
 }
 
@@ -126,7 +126,6 @@ void save_data(unsigned char* data, unsigned char* name)
     }
     printf("%s\n",filename);
     printf("save %s ok\n",filename);
-    TESTFLAG = true;
 
 }
 
@@ -156,6 +155,5 @@ void save_test_result(AndriodProduct* product)
     }
     printf("%s\n",filename);
     printf("save %s ok\n",filename);
-    TESTFLAG = true;
     free(filename);
 }
