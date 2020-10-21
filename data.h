@@ -40,12 +40,15 @@ typedef struct
     bool CAN0;
     bool CAN1;
     bool SAMECPU;
+    char  cur_cmd;
 }AndriodProduct;
 
 typedef enum {
-    CTRL_GET_MAC = 0x80,
-    CTRL_GET_DATA = 0x81,
-    CTRL_DATA_END,
+    CTRL_GET_TTYS1_MAC = 0x80,
+    CTRL_GET_TTYS3_MAC ,
+    CTRL_GET_CAN0_MAC ,
+    CTRL_GET_CAN1_MAC ,
+    CTRL_END,
 }ctrl_t;
 
 DPStatus get_data( unsigned char* in,  int length,  unsigned char* out, int* out_length);

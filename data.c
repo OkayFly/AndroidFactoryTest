@@ -61,14 +61,21 @@ void process_data(unsigned char* data, int length,AndriodProduct* product)
 {
     switch (data[0])
     {
-    case CTRL_GET_MAC:
+    case CTRL_GET_TTYS1_MAC:
         get_mac(data+1, length-1, product);
+        product->cur_cmd = CTRL_GET_TTYS1_MAC;
         break;
-    case CTRL_GET_DATA:
+    case CTRL_GET_TTYS3_MAC:
+        get_mac(data+1, length-1, product);
+        product->cur_cmd = CTRL_GET_TTYS3_MAC;
+        break;
+    case CTRL_GET_CAN0_MAC:
+        get_mac(data+1, length-1, product);
+        product->cur_cmd = CTRL_GET_CAN0_MAC;
+        break;
+    case CTRL_GET_CAN1_MAC:
         //get_mac(data+1, length-1);
-        break;
-    case CTRL_DATA_END:
-        //get_mac(data+1, length-1);;
+        product->cur_cmd = CTRL_GET_CAN1_MAC;
         break;
     default:
         break;
@@ -78,7 +85,8 @@ void process_data(unsigned char* data, int length,AndriodProduct* product)
 
 void get_mac(unsigned char* data, int length, AndriodProduct* product)
 {
-    printf("\t\t %s \t\t\n", __func__);
+
+    printf("\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %s \t\t\n", __func__);
     // for(int i=0; i<length; i++)
     // {
     //     printf("\t\t %02x \t\t", data[i]);

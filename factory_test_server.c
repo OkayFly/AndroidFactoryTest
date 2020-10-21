@@ -30,7 +30,7 @@ int main(int argc, char * argv[])
 		//cmd = userinputtocommand(userinput);
 		//if(cmd == NULL)
 		//	continue;
-		AndriodProduct my_android = {'\0', 0, 0, 0, 0, true};
+		AndriodProduct my_android = {'\0', 0, 0, 0, 0, true, '\0'};
 		printf("***************************************************\n");
 		printf("***************************************************\n");
 		printf("***************  Step1: serial_process  ***********\n");

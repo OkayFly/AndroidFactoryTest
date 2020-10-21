@@ -657,7 +657,7 @@ static void serial_process_write_data(AndriodProduct* product)
 {
 	char write_data[120];
 	write_data[0] = 0xAA;
-	write_data[1] = CTRL_GET_MAC;
+	write_data[1] = product->cur_cmd;
 	memcpy(write_data+2, product->cpu_sn, strlen(product->cpu_sn));
 	write_data[2+strlen(product->cpu_sn)] = 0x55;
 	write_data[3+strlen(product->cpu_sn)] = '\0';
@@ -681,10 +681,10 @@ static void serial_process_read_data(AndriodProduct* product)
 		
 		printf("get data:%s, length[%d]\n",data, data_length);
 
-		// for(int i=0; i<data_length; i++)
-		// {
-		// 	printf("\t\t %c\t", data[i]);
-		// }
+		for(int i=0; i<data_length; i++)
+		{
+			printf("\t\t %02x ", data[i]);
+		}
 		process_data(data, data_length, product);
 		serial_process_write_data(product);
 
