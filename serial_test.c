@@ -25,6 +25,9 @@
 
 extern bool STOPTEST;
 
+char serial_buff[1024] = {0};
+int  buff_len =0;
+
 
 /*
  * glibc for MIPS has its own bits/termios.h which does not define
@@ -662,7 +665,12 @@ static void serial_process_write_data(AndriodProduct* product)
 	write_data[2+strlen(product->cpu_sn)] = 0x55;
 	write_data[3+strlen(product->cpu_sn)] = '\0';
 	printf("\n\t write_data:%s\n",write_data);
+	for(int i=0; i<strlen(write_data); i++)
+	{
+		printf("%02x ", write_data[i]);
+	}
 	
+	printf("\n");
 	ssize_t c =write(_fd, write_data, strlen(write_data));
 	usleep(50000);
 }
@@ -672,11 +680,23 @@ static void serial_process_read_data(AndriodProduct* product)
 	unsigned char rb[95] = {};
 	unsigned char data[95] = {};
 	int data_length;
-	//unsigned char rb[1024];
 	int c = read(_fd, &rb, sizeof(rb));
 
+	if(c<= 0)
+		return;
 
-	if(get_data(rb, c, data, &data_length) == DATA_PROCESS_SUCCESS)
+	printf(":c:%d\n",c);
+
+	fflush(stdout);
+
+	//put int serail buffer
+	buff_len = strlen(serial_buff);
+	memcpy(&serial_buff[buff_len], rb, c);
+	buff_len += c;
+
+
+
+	if(parse_data(serial_buff, buff_len, data, &data_length) == DATA_PROCESS_SUCCESS)
 	{
 		
 		printf("get data:%s, length[%d]\n",data, data_length);
@@ -687,6 +707,8 @@ static void serial_process_read_data(AndriodProduct* product)
 		}
 		process_data(data, data_length, product);
 		serial_process_write_data(product);
+
+		memset(serial_buff,0,1024);
 
 	}
 
@@ -784,9 +806,9 @@ void serial_process(char* serial,AndriodProduct* product)
 
 		int  consum_tm = diff_ms(&current,&start_time);
 		//printf("\t %d\n",consum_tm);
-		if(diff_ms(&current,&start_time) >= 10000 )
+		if(diff_ms(&current,&start_time) >= 20000 )
 		{
-			printf("\t\t Error %s time consuming >5s but can't receive corrent data\n", serial);
+			printf("\t\t Error %s time consuming >20s but can't receive corrent data\n", serial);
 			STOPTEST =true;
 		}
 		

@@ -40,7 +40,7 @@ typedef struct
     bool CAN0;
     bool CAN1;
     bool SAMECPU;
-    char  cur_cmd;
+    char cur_cmd;
 }AndriodProduct;
 
 typedef enum {
@@ -51,7 +51,7 @@ typedef enum {
     CTRL_END,
 }ctrl_t;
 
-DPStatus get_data( unsigned char* in,  int length,  unsigned char* out, int* out_length);
+DPStatus parse_data( unsigned char* in,  int length,  unsigned char* out, int* out_length);
 void process_data( unsigned char* data, int length, AndriodProduct* product);
 void get_mac( unsigned char* data, int length, AndriodProduct* AndriodProduct);
 void save_data(unsigned char* data, unsigned char* name);

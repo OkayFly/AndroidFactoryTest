@@ -16,7 +16,8 @@ bool STOPTEST = false;
 //#define DATA_TRANSLATE (0xCC)
 
 
-DPStatus get_data( unsigned char* in,  int length, unsigned char* out, int* out_length)
+
+DPStatus parse_data( unsigned char* in,  int length, unsigned char* out, int* out_length)
 {
     bool has_head = false;
     int  head_index = 0;
@@ -74,7 +75,7 @@ void process_data(unsigned char* data, int length,AndriodProduct* product)
         product->cur_cmd = CTRL_GET_CAN0_MAC;
         break;
     case CTRL_GET_CAN1_MAC:
-        //get_mac(data+1, length-1);
+        get_mac(data+1, length-1, product);
         product->cur_cmd = CTRL_GET_CAN1_MAC;
         break;
     default:
@@ -106,6 +107,7 @@ void get_mac(unsigned char* data, int length, AndriodProduct* product)
     STOPTEST = true;
     //save_data(data, data);
 }
+
 
 
 void save_data(unsigned char* data, unsigned char* name)
