@@ -5,5 +5,6 @@
 
 void can_test(AndriodProduct* product);
 void can_process(char* canport, AndriodProduct* product);
+void can_process_t(void* params);
 
 #endif

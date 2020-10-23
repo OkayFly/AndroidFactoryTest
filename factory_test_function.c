@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+
 // static const char commandlist[NCOMMANDS][10] = 
 // {
 // 	"START",
@@ -82,4 +83,11 @@ int diff_ms(const struct timespec *t1, const struct timespec *t2)
 		diff.tv_nsec += 1000000000;
 	}
 	return (diff.tv_sec * 1000 + diff.tv_nsec/1000000);
+}
+
+void printf_func_mark(char* func)
+{
+	printf("########################################################\n");
+	printf("\t\t***  %s  ***\n", func);
+	printf("########################################################\n");
 }

@@ -170,3 +170,8 @@ void save_test_result(AndriodProduct* product)
     printf("save %s ok\n",filename);
     free(filename);
 }
+
+void save_process_t(void* params)
+{
+
+}

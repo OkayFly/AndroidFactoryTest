@@ -19,31 +19,31 @@ static int can_frame_process_write_data(int s, char* canport, AndriodProduct* pr
 
 static int can_process_read_data(int s, char* canport, AndriodProduct* product)
 {
-    struct timeval timeout, timeout_config = { 0, 0 }, *timeout_current = NULL;
-    timeout_config.tv_usec = 20000;//msecs// -T <msecs>  (terminate after <msecs> without any reception)\n"); //20s
+    // struct timeval timeout, timeout_config = { 0, 0 }, *timeout_current = NULL;
+    // timeout_config.tv_usec = 20000;//msecs// -T <msecs>  (terminate after <msecs> without any reception)\n"); //20s
     
-    //???????????
-    timeout_config.tv_sec = timeout_config.tv_usec / 1000;
-    timeout_config.tv_usec = (timeout_config.tv_usec % 1000) * 1000;
-    timeout_current = &timeout;
+    // //???????????
+    // timeout_config.tv_sec = timeout_config.tv_usec / 1000;
+    // timeout_config.tv_usec = (timeout_config.tv_usec % 1000) * 1000;
+    // timeout_current = &timeout;
 
-    fd_set rdfs;
+    // fd_set rdfs;
 
     unsigned char receive_data[1024];
     int receive_len = 0;
 
     /* set filter for only receiving packet with can id 0x88 */
-        struct can_frame frame;
+    struct can_frame frame;
     struct can_filter rfilter[1];
     rfilter[0].can_id = 0x88;
     rfilter[0].can_mask = CAN_SFF_MASK;
-    if(setsockopt(s, SOL_CAN_RAW, CAN_RAW_FILTER, &rfilter, sizeof(rfilter)) < 0)
-    {
-        perror("set receiving filter error\n");
-        close(s);
-        //exit(-3);
-        return -3;
-    }
+    // if(setsockopt(s, SOL_CAN_RAW, CAN_RAW_FILTER, &rfilter, sizeof(rfilter)) < 0)
+    // {
+    //     perror("set receiving filter error\n");
+    //     close(s);
+    //     //exit(-3);
+    //     return -3;
+    // }
     /* keep reading */
     bool keepRead = true;
     struct  timespec start_time;
@@ -51,21 +51,21 @@ static int can_process_read_data(int s, char* canport, AndriodProduct* product)
 
     while(keepRead){
 
-        FD_ZERO(&rdfs);
-        FD_SET(s,&rdfs);
+        // FD_ZERO(&rdfs);
+        // FD_SET(s,&rdfs);
 
         
-		if (timeout_current)
-		*timeout_current = timeout_config;
-        printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~select~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+		// if (timeout_current)
+		// *timeout_current = timeout_config;
+        // printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~select~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
 
-        //???????????s+1
-		if ((select(s+1, &rdfs, NULL, NULL, timeout_current)) <= 0) {
-			perror("select");
-            printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Iiiiii~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
-			keepRead = false;
-            continue;
-		}
+        // //???????????s+1
+		// if ((select(s+1, &rdfs, NULL, NULL, timeout_current)) <= 0) {
+		// 	perror("select");
+        //     printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Iiiiii~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+		// 	keepRead = false;
+        //     continue;
+		// }
 
         printf("\n\t~~~~~~~~~~~~~~~read\n\t");
 		struct timespec current;
@@ -86,7 +86,10 @@ static int can_process_read_data(int s, char* canport, AndriodProduct* product)
         if(frame.can_dlc <=0 )
             continue;
         if(receive_len + frame.can_dlc > 1000)
-            return -1;
+        {
+            memset(receive_data, 0, 1024);
+            receive_len = 0;
+        }
         memcpy(&receive_data[receive_len], &frame.data[0], frame.can_dlc);
         receive_len += frame.can_dlc;
 
@@ -112,16 +115,16 @@ static int can_process_read_data(int s, char* canport, AndriodProduct* product)
 
         can_frame_process_write_data(s, canport, product);
 
-        keepRead = false;
+        //keepRead = false;
 
     }
 
 
-    if(diff_ms(&current,&start_time) >= 1000 )//1s
-    {
-        printf("\t\t Error %s time consuming >1s but can't read data\n", canport);
-        keepRead = false;
-    }
+    // if(diff_ms(&current,&start_time) >= 1000 )//1s
+    // {
+    //     printf("\t\t Error %s time consuming >1s but can't read data\n", canport);
+    //     keepRead = false;
+    // }
 
 
 
@@ -370,14 +373,11 @@ void can_process(char* canport, AndriodProduct* product)
 	last_time = start_time;
 	last_read = start_time;
 	last_write = start_time;
-    while(!STOPTEST)
+    while(1)
     {
         struct timespec current;
 		clock_gettime(CLOCK_MONOTONIC, &current);
-        if( can_process_read_data(s,canport, product) )
-        {
-            STOPTEST = true;
-        }
+        can_process_read_data(s,canport, product);
 
         
 		if(diff_ms(&current,&start_time) >= 10000 )//10s
@@ -396,4 +396,73 @@ void can_test(AndriodProduct* product)
 {
     can_process(CAN0Port, product);
     can_process(CAN1Port, product);
+}
+
+
+
+void can_process_t(void* params)
+{
+    printf_func_mark(__func__);
+    parameters *data = (parameters*) params;
+
+     int s; // can raw socket
+    int i;
+    unsigned char number = 0;
+    int nbytes;
+    
+    pid_t pid = -1;
+
+    struct sockaddr_can addr;
+    struct ifreq ifr;   
+    struct can_filter rfilter[1];
+    struct can_frame frame;
+    struct can_frame frame_send;
+
+    start_can(data->port);
+    printf("**\t ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~can_process:%s\n", data->port);
+    printf("**\t serail_process:%s\n", data->port);
+
+    //create socket
+    if ((s = socket(PF_CAN, SOCK_RAW, CAN_RAW)) < 0)
+	{
+	   perror("Create socket failed");
+	   return -1;
+	}
+
+    /* set up can interface */
+	strcpy(ifr.ifr_name, data->port);
+	printf("can port is %s\n",ifr.ifr_name);
+
+    /* assign can device */
+	ioctl(s, SIOCGIFINDEX, &ifr);//指定can设备
+	addr.can_family = AF_CAN;
+	addr.can_ifindex = ifr.ifr_ifindex;
+
+    /* try to switch the socket into CAN FD mode */
+    setsockopt(s, SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &canfd_on, sizeof(canfd_on));
+
+	/* bind can device */
+	if(bind(s, (struct sockaddr *)&addr, sizeof(addr)) < 0)//将套接字与can0绑定
+	{
+	     perror("Bind can device failed\n");
+	     close(s);
+	     return -1;
+	}
+
+    printf("** \t wait read cpu ID\n");
+	fflush(stdout);
+
+    while(!STOPTEST)
+    {
+
+        can_process_read_data(s,data->port, data->product);
+        
+            
+	 }
+
+	close(s);
+	return 0;
+
+
+
 }

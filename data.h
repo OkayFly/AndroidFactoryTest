@@ -43,6 +43,15 @@ typedef struct
     char cur_cmd;
 }AndriodProduct;
 
+
+typedef struct 
+{
+    char port[14];//open which port
+    AndriodProduct* product; //The point to the product  
+
+}parameters;
+
+
 typedef enum {
     CTRL_GET_TTYS1_MAC = 0x80,
     CTRL_GET_TTYS3_MAC ,
@@ -57,5 +66,7 @@ void get_mac( unsigned char* data, int length, AndriodProduct* AndriodProduct);
 void save_data(unsigned char* data, unsigned char* name);
 
 void save_test_result(AndriodProduct* product);
+
+void save_process_t(void* params);
 
 #endif//__ANDROID_DATA_H__

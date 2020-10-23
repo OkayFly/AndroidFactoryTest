@@ -26,8 +26,9 @@
 extern bool STOPTEST;
 
 char serial_buff[1024] = {0};
+char serial_buff1[1024] = {0};
 int  buff_len =0;
-
+int  buff_len1 =0;
 
 /*
  * glibc for MIPS has its own bits/termios.h which does not define
@@ -47,6 +48,7 @@ int  buff_len =0;
 // command line args
 int _cl_baud = 0;
 char *_cl_port = NULL;
+char *_cl_port1 = NULL;
 int _cl_divisor = 0;
 int _cl_rx_dump = 0;
 int _cl_rx_dump_ascii = 0;
@@ -56,10 +58,15 @@ int _cl_stop_on_error = 0;
 int _cl_single_byte = -1;
 int _cl_another_byte = -1;
 int _cl_rts_cts = 0;
+int _cl_rts_cts1 = 0;
 int _cl_2_stop_bit = 0;
+int _cl_2_stop_bit1 = 0;
 int _cl_parity = 0;
+int _cl_parity1 = 0;
 int _cl_odd_parity = 0;
+int _cl_odd_parity1 = 0;
 int _cl_stick_parity = 0;
+int _cl_stick_parity1 = 0;
 int _cl_loopback = 0;
 int _cl_dump_err = 0;
 int _cl_no_rx = 0;
@@ -78,6 +85,7 @@ int _cl_ascii_range = 0;
 unsigned char _write_count_value = 0;
 unsigned char _read_count_value = 0;
 int _fd = -1;
+int _fd1 = -1;
 unsigned char * _write_data;
 ssize_t _write_size;
 
@@ -152,6 +160,25 @@ static void clear_custom_speed_flag()
 	ss.flags &= ~ASYNC_SPD_MASK;
 
 	if (ioctl(_fd, TIOCSSERIAL, &ss) < 0) {
+		perror("TIOCSSERIAL failed");
+		//exit(1);
+	}
+}
+
+static void clear_custom_speed_flag1()
+{
+	struct serial_struct ss;
+	if (ioctl(_fd1, TIOCGSERIAL, &ss) < 0) {
+		// return silently as some devices do not support TIOCGSERIAL
+		return;
+	}
+
+	if ((ss.flags & ASYNC_SPD_MASK) != ASYNC_SPD_CUST)
+		return;
+
+	ss.flags &= ~ASYNC_SPD_MASK;
+
+	if (ioctl(_fd1, TIOCSSERIAL, &ss) < 0) {
 		perror("TIOCSSERIAL failed");
 		//exit(1);
 	}
@@ -600,6 +627,83 @@ static bool setup_serial_port(int baud)
 }
 
 
+static bool setup_serial_port1(int baud)
+{
+	struct termios newtio;
+	struct serial_rs485 rs485;
+
+	_fd1 = open(_cl_port1, O_RDWR | O_NONBLOCK);
+
+	if (_fd1 < 0) {
+		perror("Error opening serial port");
+		free(_cl_port1);
+		//exit(1);
+		return false;
+	}
+
+	bzero(&newtio, sizeof(newtio)); /* clear struct for new port settings */
+
+	/* man termios get more info on below settings */
+	newtio.c_cflag = baud | CS8 | CLOCAL | CREAD;
+
+	if (_cl_rts_cts1) {
+		newtio.c_cflag |= CRTSCTS;
+	}
+
+	if (_cl_2_stop_bit1) {
+		newtio.c_cflag |= CSTOPB;
+	}
+
+	if (_cl_parity1) {
+		newtio.c_cflag |= PARENB;
+		if (_cl_odd_parity1) {
+			newtio.c_cflag |= PARODD;
+		}
+		if (_cl_stick_parity1) {
+			newtio.c_cflag |= CMSPAR;
+		}
+	}
+
+	newtio.c_iflag = 0;
+	newtio.c_oflag = 0;
+	newtio.c_lflag = 0;
+
+	// block for up till 128 characters
+	newtio.c_cc[VMIN] = 128;
+
+	// 0.5 seconds read timeout
+	newtio.c_cc[VTIME] = 5;
+
+	/* now clean the modem line and activate the settings for the port */
+	tcflush(_fd1, TCIOFLUSH);
+	tcsetattr(_fd1,TCSANOW,&newtio);
+
+	/* enable/disable rs485 direction control */
+	if(ioctl(_fd1, TIOCGRS485, &rs485) < 0) {
+		if (_cl_rs485_after_delay >= 0) {
+			/* error could be because hardware is missing rs485 support so only print when actually trying to activate it */
+			//perror("Error getting RS-485 mode");
+		}
+	} else if (_cl_rs485_after_delay >= 0) {
+		rs485.flags |= SER_RS485_ENABLED | SER_RS485_RX_DURING_TX |
+			(_cl_rs485_rts_after_send ? SER_RS485_RTS_AFTER_SEND : SER_RS485_RTS_ON_SEND);
+		rs485.flags &= ~(_cl_rs485_rts_after_send ? SER_RS485_RTS_ON_SEND : SER_RS485_RTS_AFTER_SEND);
+		rs485.delay_rts_after_send = _cl_rs485_after_delay;
+		rs485.delay_rts_before_send = _cl_rs485_before_delay;
+		if(ioctl(_fd1, TIOCSRS485, &rs485) < 0) {
+			//perror("Error setting RS-485 mode");
+		}
+	} else {
+		rs485.flags &= ~(SER_RS485_ENABLED | SER_RS485_RTS_ON_SEND | SER_RS485_RTS_AFTER_SEND);
+		rs485.delay_rts_after_send = 0;
+		rs485.delay_rts_before_send = 0;
+		if(ioctl(_fd1, TIOCSRS485, &rs485) < 0) {
+			//perror("Error setting RS-232 mode");
+		}
+	}
+
+	return true;
+}
 
 bool check_count(const char* p)
 {
@@ -675,7 +779,28 @@ static void serial_process_write_data(AndriodProduct* product)
 	usleep(50000);
 }
 
-static void serial_process_read_data(AndriodProduct* product)
+
+
+static void serial_process_write_data1(AndriodProduct* product)
+{
+	char write_data[120];
+	write_data[0] = 0xAA;
+	write_data[1] = product->cur_cmd;
+	memcpy(write_data+2, product->cpu_sn, strlen(product->cpu_sn));
+	write_data[2+strlen(product->cpu_sn)] = 0x55;
+	write_data[3+strlen(product->cpu_sn)] = '\0';
+	printf("\n\t write_data:%s\n",write_data);
+	for(int i=0; i<strlen(write_data); i++)
+	{
+		printf("%02x ", write_data[i]);
+	}
+	
+	printf("\n");
+	ssize_t c =write(_fd1, write_data, strlen(write_data));
+	usleep(50000);
+}
+
+static int serial_process_read_data(AndriodProduct* product)
 {
 	unsigned char rb[95] = {};
 	unsigned char data[95] = {};
@@ -683,7 +808,7 @@ static void serial_process_read_data(AndriodProduct* product)
 	int c = read(_fd, &rb, sizeof(rb));
 
 	if(c<= 0)
-		return;
+		return -1;
 
 	printf(":c:%d\n",c);
 
@@ -712,46 +837,50 @@ static void serial_process_read_data(AndriodProduct* product)
 
 	}
 
+	return 0;
+}
 
 
-	//if(serial_unpack_for_cpuid(rb))
+static int serial_process_read_data1(AndriodProduct* product)
+{
+	unsigned char rb[95] = {};
+	unsigned char data[95] = {};
+	int data_length;
+	int c = read(_fd1, &rb, sizeof(rb));
+
+	if(c<= 0)
+		return -1;
+
+	printf(":c:%d\n",c);
+
+	fflush(stdout);
+
+	//put int serail buffer
+	buff_len1 = strlen(serial_buff1);
+	memcpy(&serial_buff1[buff_len1], rb, c);
+	buff_len1 += c;
+
+
+
+	if(parse_data(serial_buff1, buff_len1, data, &data_length) == DATA_PROCESS_SUCCESS)
 	{
-	//	printf("**\t get data:%s\n",data);
-	//	printf("**\t {OK} get cpuID[]\n");
+		
+		printf("get data:%s, length[%d]\n",data, data_length);
+
+		for(int i=0; i<data_length; i++)
+		{
+			printf("\t\t %02x ", data[i]);
+		}
+		process_data(data, data_length, product);
+		serial_process_write_data1(product);
+
+		memset(serial_buff1,0,1024);
+
 	}
 
-
-	// if (c > 0) {
-	// 	if (_cl_rx_dump) {
-	// 		if (_cl_rx_dump_ascii)
-	// 			dump_data_ascii(rb, c);
-	// 		else
-	// 			dump_data(rb, c);
-	// 	}
-
-	// 	// verify read count is incrementing
-	// 	int i;
-	// 	for (i = 0; i < c; i++) {
-	// 		printf("\n**\t read:[%02x]",rb[i]);
-	// 		if (rb[i] != _read_count_value) {
-	// 			if (_cl_dump_err) {
-	// 				printf("Error, count: %lld, expected %02x, got %02x\n",
-	// 						_read_count + i, _read_count_value, rb[i]);
-	// 			}
-	// 			_error_count++;
-	// 			if (_cl_stop_on_error) {
-	// 				dump_serial_port_stats();
-	// 				exit(1);
-	// 			}
-	// 			_read_count_value = rb[i];
-	// 		}
-	// 		_read_count_value = next_count_value(_read_count_value);
-	// 	}
-	// 	printf("\n");
-	// 	printf("rendcount:%d\n", _read_count);
-	// 	_read_count += c;
-	// }
+	return 0;
 }
+
 
 void serial_process(char* serial,AndriodProduct* product)
 {
@@ -833,4 +962,181 @@ void serial_test(AndriodProduct* product)
 {
 	serial_process(TTYS1Port, product);
 	serial_process(TTYS3Port, product);
+}
+
+void serial_ttyS1_process_t(void* params)
+{
+	parameters *data = (parameters*) params;
+	printf_func_mark(__func__);
+
+	int baud = B115200;
+	_cl_port = data->port;
+	if(!setup_serial_port(baud))
+	{
+		perror("set serial port baud");
+		return;
+		//	exit;//??????????????
+	}
+
+	clear_custom_speed_flag();
+	if(!set_modem_lines(_fd, _cl_loopback ? TIOCM_LOOP : 0, TIOCM_LOOP))
+	{
+		perror("et_modem_lines");
+		return;
+		//	exit;//??????????????
+
+	}
+
+
+	struct pollfd serial_poll;
+	serial_poll.fd = _fd;
+	if(!_cl_no_rx)
+		serial_poll.events |= POLLIN;
+	else
+	{
+		serial_poll.events &= ~POLLIN;
+	}
+	if(!_cl_no_tx)
+		serial_poll.events |= POLLOUT;
+	else
+	{
+		serial_poll.events &= ~POLLOUT;
+	}
+
+
+	printf("** \t wait receive cpu ID\n");
+	struct timespec start_time, last_time, last_read, last_write;
+	clock_gettime(CLOCK_MONOTONIC, &start_time);
+	last_time = start_time;
+	last_read = start_time;
+	last_write = start_time;
+
+	while(!(_cl_no_rx && _cl_no_tx))
+	{
+		struct timespec current;
+		int retval = poll(&serial_poll, 1, 1000);
+		clock_gettime(CLOCK_MONOTONIC, &current);
+
+		if(retval == -1)
+		{
+			perror("**\t poll()");
+		}
+		else if(retval)
+		{
+			if( !serial_process_read_data(data->product))
+				start_time = current;
+			
+		}
+
+		int  consum_tm = diff_ms(&current,&start_time);
+		//printf("\t %d\n",consum_tm);
+		if(diff_ms(&current,&start_time) >= 60000 )
+		{
+			printf("\t\t Error %s time consuming >60s but can't receive corrent data\n", data->port);
+			//STOPTEST =true;
+		}
+		
+
+	}
+
+	//close serial
+	printf("**\t close serial:%s\n", data->port);
+	fflush(stdout);
+	tcdrain(_fd);
+	//dump_serial_port_stats();
+	set_modem_lines(_fd, 0, TIOCM_LOOP);
+	tcflush(_fd, TCIOFLUSH);
+	free(_cl_port);
+
+	return 0;
+
+}
+
+
+void serial_ttyS3_process_t(void* params)
+{
+
+	printf_func_mark(__func__);
+
+	parameters *data = (parameters*) params;
+
+	int baud = B115200;
+	_cl_port1 = data->port;
+	if(!setup_serial_port1(baud))
+	{
+		perror("set serial port baud");
+		return;
+		//	exit;//??????????????
+	}
+
+	clear_custom_speed_flag1();
+	if(!set_modem_lines(_fd1, _cl_loopback ? TIOCM_LOOP : 0, TIOCM_LOOP))
+	{
+		perror("et_modem_lines");
+		return;
+		//	exit;//??????????????
+
+	}
+
+
+	struct pollfd serial_poll;
+	serial_poll.fd = _fd1;
+	if(!_cl_no_rx)
+		serial_poll.events |= POLLIN;
+	else
+	{
+		serial_poll.events &= ~POLLIN;
+	}
+	if(!_cl_no_tx)
+		serial_poll.events |= POLLOUT;
+	else
+	{
+		serial_poll.events &= ~POLLOUT;
+	}
+
+
+	printf("** \t wait receive cpu ID\n");
+	struct timespec start_time, last_time, last_read, last_write;
+	clock_gettime(CLOCK_MONOTONIC, &start_time);
+	last_time = start_time;
+	last_read = start_time;
+	last_write = start_time;
+
+	while(!(_cl_no_rx && _cl_no_tx))
+	{
+		struct timespec current;
+		int retval = poll(&serial_poll, 1, 1000);
+		clock_gettime(CLOCK_MONOTONIC, &current);
+
+		if(retval == -1)
+		{
+			perror("**\t poll()");
+		}
+		else if(retval)
+		{
+			if( !serial_process_read_data1(data->product))
+				start_time = current;
+			
+		}
+
+		int  consum_tm = diff_ms(&current,&start_time);
+		//printf("\t %d\n",consum_tm);
+		if(diff_ms(&current,&start_time) >= 60000 )
+		{
+			printf("\t\t Error %s time consuming >60s but can't receive corrent data\n", data->port);
+			//STOPTEST =true;
+		}
+		
+
+	}
+
+	//close serial
+	printf("**\t close serial:%s\n", data->port);
+	fflush(stdout);
+	tcdrain(_fd1);
+	//dump_serial_port_stats();
+	set_modem_lines(_fd1, 0, TIOCM_LOOP);
+	tcflush(_fd1, TCIOFLUSH);
+	free(_cl_port1);
+	return 0;
 }
