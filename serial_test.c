@@ -831,6 +831,6 @@ void serial_process(char* serial,AndriodProduct* product)
 
 void serial_test(AndriodProduct* product)
 {
-	serial_process(USBPort, product);
-	serial_process(USBPort, product);
+	serial_process(TTYS1Port, product);
+	serial_process(TTYS3Port, product);
 }

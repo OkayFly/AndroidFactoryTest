@@ -19,34 +19,40 @@ int main(int argc, char * argv[])
 	printf("______________________________________________________________________________________\n");
 	printf("______________________________________________________________________________________\n\n");
 
+// 4个线程
 
+
+
+
+
+// 改用多线程
 	// char userinput[LENUSERINPUT];
 	// struct command* cmd;
 
-	while(1)
-	{
-		//printf("\t^_^ please input [START] and click [Enter] end for the [%d]'s factory test^_^\t\n:", ++test_count);
-		//fgets(userinput, LENUSERINPUT, stdin);
-		//cmd = userinputtocommand(userinput);
-		//if(cmd == NULL)
-		//	continue;
-		AndriodProduct my_android = {'\0', 0, 0, 0, 0, true, '\0'};
-		printf("***************************************************\n");
-		printf("***************************************************\n");
-		printf("***************  Step1: serial_process  ***********\n");
-		printf("***************************************************\n");
-		printf("*****************************************\n");
-		serial_test(&my_android);
-		can_process(&my_android);
+	// while(1)
+	// {
+	// 	//printf("\t^_^ please input [START] and click [Enter] end for the [%d]'s factory test^_^\t\n:", ++test_count);
+	// 	//fgets(userinput, LENUSERINPUT, stdin);
+	// 	//cmd = userinputtocommand(userinput);
+	// 	//if(cmd == NULL)
+	// 	//	continue;
+	// 	AndriodProduct my_android = {'\0', 0, 0, 0, 0, true, '\0'};
+	// 	printf("***************************************************\n");
+	// 	printf("***************************************************\n");
+	// 	printf("***************  Step1: serial_process  ***********\n");
+	// 	printf("***************************************************\n");
+	// 	printf("*****************************************\n");
+	// 	serial_test(&my_android);
+	// 	can_test(&my_android);
 
-		if( strlen(my_android.cpu_sn) != 0)
-		{
-			save_test_result(&my_android);
+	// 	if( strlen(my_android.cpu_sn) != 0)
+	// 	{
+	// 		save_test_result(&my_android);
 
-		}
+	// 	}
 		
 
-	}
+	// }
 	
 
 	
