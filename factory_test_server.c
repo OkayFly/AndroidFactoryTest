@@ -11,35 +11,31 @@
 
 
 
-
 int main(int argc, char * argv[])
 {
 	// ====== create the product ====
 	AndriodProduct my_android = {'\0', FSM_IDLE, FSM_IDLE, FSM_IDLE, FSM_IDLE, true};
 	// ====== create their threads parameters ===
 	parameters *paramTTYS1 = (parameters*) malloc(sizeof(parameters));
-	//memcpy(paramTTYS1->port, TTYS1Port, strlen(TTYS1Port));
-	memcpy(paramTTYS1->port, USBPort, strlen(USBPort));
+	memcpy(paramTTYS1->port, TTYS1Port, strlen(TTYS1Port));
+	//memcpy(paramTTYS1->port, USBPort, strlen(USBPort));
 	paramTTYS1->product = &my_android;
 
-	// parameters *paramTTYS3 = (parameters*) malloc(sizeof(parameters));
-	// memcpy(paramTTYS3->port, TTYS3Port, strlen(TTYS3Port));
-	// paramTTYS3->product = &my_android;
+	parameters *paramTTYS3 = (parameters*) malloc(sizeof(parameters));
+	memcpy(paramTTYS3->port, TTYS3Port, strlen(TTYS3Port));
+	paramTTYS3->product = &my_android;
 
-	// parameters *paramCAN0 = (parameters*) malloc(sizeof(parameters));
-	// memcpy(paramCAN0->port, CAN0Port, strlen(CAN0Port));
-	// paramCAN0->product = &my_android;
+	parameters *paramCAN0 = (parameters*) malloc(sizeof(parameters));
+	memcpy(paramCAN0->port, CAN0Port, strlen(CAN0Port));
+	paramCAN0->product = &my_android;
 
-	// parameters *paramCAN1 = (parameters*) malloc(sizeof(parameters));
-	// memcpy(paramCAN1->port, CAN1Port, strlen(CAN1Port));
-	// paramCAN1->product = &my_android;
+	parameters *paramCAN1 = (parameters*) malloc(sizeof(parameters));
+	memcpy(paramCAN1->port, CAN1Port, strlen(CAN1Port));
+	paramCAN1->product = &my_android;
 
 	parameters *paramSave = (parameters*) malloc(sizeof(parameters));
 	paramSave->product = &my_android;
 
-
-
-	
 
 printf("______________________________________________________________________________________\n");
 printf("______________________________________________________________________________________\n\n");
@@ -62,16 +58,16 @@ void* saveValue;
 
 // ====== Initialize the thread ======
 pthread_create(&thread_ttys1, NULL, serial_process_t, (void *)paramTTYS1);
-//pthread_create(&thread_ttys3, NULL, serial_ttyS3_process_t, (void *)paramTTYS3);
-// pthread_create(&thread_can0, NULL, can_process_t, (void *)paramCAN0);
-// pthread_create(&thread_can1, NULL, can_process_t, (void *)paramCAN1);
+pthread_create(&thread_ttys3, NULL, serial_ttyS3_process_t, (void *)paramTTYS3);
+pthread_create(&thread_can0, NULL, can_process_t, (void *)paramCAN0);
+pthread_create(&thread_can1, NULL, can_process_t, (void *)paramCAN1);
 pthread_create(&thread_save, NULL, save_process_t, (void *)paramSave);
 
 // ====== Wait for all thread to finish thieir tasks ======
 pthread_join(thread_ttys1, &ttys1Value);
-// pthread_join(thread_ttys3, &ttys3Value);
-// pthread_join(thread_can0, &can0Value);
-// pthread_join(thread_can1, &can1Value);
+pthread_join(thread_ttys3, &ttys3Value);
+pthread_join(thread_can0, &can0Value);
+pthread_join(thread_can1, &can1Value);
 
 pthread_join(thread_save, &saveValue);
 

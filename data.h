@@ -65,7 +65,7 @@ typedef enum {
 
 DPStatus parse_data( unsigned char* in,  int length,  unsigned char* out, int* out_length);
 void process_data( unsigned char* data, int length, AndriodProduct* product, fsm_state_t* serial_fsm);
-void get_mac( unsigned char* data, int length, AndriodProduct* AndriodProduct, fsm_state_t* serial_fsm);
+void get_sn( unsigned char* data, int length, AndriodProduct* AndriodProduct, fsm_state_t* serial_fsm);
 void get_end( unsigned char* data, int length, AndriodProduct* AndriodProduct, fsm_state_t* serial_fsm);
 
 void save_data(unsigned char* data, unsigned char* name);

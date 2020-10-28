@@ -1,0 +1,4 @@
+I:/git_workspace/AndroidFactoryTest/build/CMakeFiles/INSTALL.dir
+I:/git_workspace/AndroidFactoryTest/build/CMakeFiles/factory_test_server.dir
+I:/git_workspace/AndroidFactoryTest/build/CMakeFiles/ALL_BUILD.dir
+I:/git_workspace/AndroidFactoryTest/build/CMakeFiles/ZERO_CHECK.dir

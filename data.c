@@ -7,7 +7,8 @@
 #include <pthread.h>
 
 
-pthread_mutex_t mutex =  PTHREAD_MUTEX_INITIALIZER; //init mutex
+//mutext
+pthread_mutex_t mutex_sn =  PTHREAD_MUTEX_INITIALIZER; //init mutex
 
 #define LENGTHBUF 1024
 #define DATA_HEAD (0xAA)
@@ -64,7 +65,7 @@ void process_data(unsigned char* data, int length,AndriodProduct* product, fsm_s
     switch (data[0])
     {
     case CTRL_GET_MAC:
-        get_mac(data+1, length-1, product, fsm);
+        get_sn(data+1, length-1, product, fsm);
         break;
     case CTRL_GET_END:
         get_end(data+1, length-1, product, fsm);
@@ -76,8 +77,10 @@ void process_data(unsigned char* data, int length,AndriodProduct* product, fsm_s
 
 }
 
-void get_mac(unsigned char* data, int length, AndriodProduct* product, fsm_state_t* fsm)
+void get_sn(unsigned char* data, int length, AndriodProduct* product, fsm_state_t* fsm)
 {
+
+    
     printf("\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %s \t\t\n", __func__);
     // for(int i=0; i<length; i++)
     // {
@@ -85,11 +88,12 @@ void get_mac(unsigned char* data, int length, AndriodProduct* product, fsm_state
     // }
 
     if(*fsm != FSM_IDLE)
-        {
-            printf("!!!!!!!!!!!!!!wfk\n");
+    {
+        printf("!!!!!!!!!!!!!!wfk\n");
 
-            printf("Fsm:%d\n", *fsm);
-        }
+        printf("Fsm:%d\n", *fsm);
+    }
+    pthread_mutex_lock (&mutex_sn);
     if( strlen(product->cpu_sn) != 0 && strncmp(product->cpu_sn, data, length))
     {
         printf("\t\tError The Android product is not same!!!\n");
@@ -104,6 +108,7 @@ void get_mac(unsigned char* data, int length, AndriodProduct* product, fsm_state
     }
 
     *fsm = FSM_GET_MAC;
+    pthread_mutex_unlock (&mutex_sn);
 }
 
 void get_end(unsigned char* data, int length, AndriodProduct* product, fsm_state_t* fsm)
@@ -208,7 +213,10 @@ static bool  product_test_complete(AndriodProduct* product)
 
 void product_clear(AndriodProduct* product)
 {
+    pthread_mutex_lock (&mutex_sn);
     memset(product->cpu_sn, 0, 20);
+    pthread_mutex_unlock (&mutex_sn);
+    
     product->SAMESN = true;
     product->TTYS1 = FSM_IDLE;
     product->TTYS3 = FSM_IDLE;
@@ -222,17 +230,16 @@ void save_process_t(void* params)
     parameters *data = (parameters*) params;
 	printf_func_mark(__func__);
 
-
     while(1)
     {
         //
-        pthread_mutex_lock(&mutex);
+        // pthread_mutex_lock(&mutex);
         if(product_test_complete(data->product))
         {
             product_save_result(data->product);
             product_clear(data->product);
         }
-        pthread_mutex_unlock(&mutex);
+        // pthread_mutex_unlock(&mutex);
 
     }
 

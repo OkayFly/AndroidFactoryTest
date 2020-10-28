@@ -24,7 +24,7 @@
 
 
 extern bool STOPTEST;
-
+extern pthread_mutex_t mutex_sn;
 // char serial_buff[1024] = {0};
 // char serial_buff1[1024] = {0};
 // int  buff_len =0;
@@ -847,12 +847,20 @@ static char* enum2str(int comid)
 static void reply_end(AndriodProduct* product, int fd)
 {
 	printf("!~~~%s__\n",__func__);
+
+	
+
+	
+
 	char write_data[120];
 	write_data[0] = 0xAA;
 	write_data[1] = CTRL_GET_END;
+	pthread_mutex_lock (&mutex_sn);
 	memcpy(write_data+2, product->cpu_sn, strlen(product->cpu_sn));
 	write_data[2+strlen(product->cpu_sn)] = 0x55;
 	write_data[3+strlen(product->cpu_sn)] = '\0';
+	pthread_mutex_unlock (&mutex_sn);
+	
 	printf("\n\t write_data:%s\n",write_data);
 	for(int i=0; i<strlen(write_data); i++)
 	{
@@ -913,7 +921,7 @@ static int serial_process_read_data(AndriodProduct* product, char * buff, int* b
 	printf("\n");
 	printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
 
-	//put int serail buffer
+	//put int serail buffer //TODO 超过了怎么说
 	*buff_len = strlen(buff);
 	memcpy(&buff[*buff_len], rb, c);
 	*buff_len += c;
@@ -933,16 +941,13 @@ static int serial_process_read_data(AndriodProduct* product, char * buff, int* b
 			reply_sn(product, fd);
 
 		memset(buff,0,1024);
+		*buff_len = 0;
 	}
 //printf("return 0\n");
 	return 0;
 }
 
-void wait_save(char* port)
-{
-	printf("waite save[%s]\n",port);
-	usleep(1000);
-}
+
 
 
 void serial_process_t(void* params)
@@ -1074,7 +1079,7 @@ void serial_process_t(void* params)
 		int  consum_tm = diff_ms(&current_time,&last_read);
 	
 
-		if(consum_tm >= 20000 )//20s
+		if(consum_tm >= 20000 )//20s//还有一直受到垃圾消息
 		{
 			printf("\t\t Error %s time consuming >60s but can't receive corrent data\n", data->port);
 			clock_gettime(CLOCK_MONOTONIC, &last_read);
