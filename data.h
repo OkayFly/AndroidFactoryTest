@@ -31,16 +31,22 @@ typedef enum DataProcessStatus
 
 }DPStatus;
 
+typedef enum 
+{
+    FSM_IDLE,
+    FSM_GET_MAC,
+    FSM_GET_END,
+}fsm_state_t;
+
 
 typedef struct 
 {
     unsigned char cpu_sn[20]; //cpu serial number
-    bool TTYS1;
-    bool TTYS3;
-    bool CAN0;
-    bool CAN1;
-    bool SAMECPU;
-    char cur_cmd;
+    fsm_state_t TTYS1;
+    fsm_state_t TTYS3;
+    fsm_state_t CAN0;
+    fsm_state_t CAN1;
+    bool SAMESN;
 }AndriodProduct;
 
 
@@ -51,18 +57,17 @@ typedef struct
 
 }parameters;
 
-
+// no disting the tty1 2 can0 can1 one to one 
 typedef enum {
-    CTRL_GET_TTYS1_MAC = 0x80,
-    CTRL_GET_TTYS3_MAC ,
-    CTRL_GET_CAN0_MAC ,
-    CTRL_GET_CAN1_MAC ,
-    CTRL_END,
+    CTRL_GET_MAC = 0x80,
+    CTRL_GET_END ,
 }ctrl_t;
 
 DPStatus parse_data( unsigned char* in,  int length,  unsigned char* out, int* out_length);
-void process_data( unsigned char* data, int length, AndriodProduct* product);
-void get_mac( unsigned char* data, int length, AndriodProduct* AndriodProduct);
+void process_data( unsigned char* data, int length, AndriodProduct* product, fsm_state_t* serial_fsm);
+void get_mac( unsigned char* data, int length, AndriodProduct* AndriodProduct, fsm_state_t* serial_fsm);
+void get_end( unsigned char* data, int length, AndriodProduct* AndriodProduct, fsm_state_t* serial_fsm);
+
 void save_data(unsigned char* data, unsigned char* name);
 
 void save_test_result(AndriodProduct* product);

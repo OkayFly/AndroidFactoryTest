@@ -111,7 +111,7 @@ static int can_process_read_data(int s, char* canport, AndriodProduct* product)
         // {
         // 	printf("\t\t %02x\t", data[i]);
         // }
-        process_data(data, data_length, product);
+        //process_data(data, data_length, product); //TODO
 
         can_frame_process_write_data(s, canport, product);
 
@@ -154,7 +154,7 @@ static int can_frame_process_write_data(int s, char* canport, AndriodProduct* pr
 
         //第一帧
         frame_send.data[0] = 0xAA;
-        frame_send.data[1] = product->cur_cmd;
+        //frame_send.data[1] = product->cur_cmd; //TODO
         for(int i=2;i<8;i++)//6
         {
             frame_send.data[i] = product->cpu_sn[cursor++];
@@ -231,46 +231,6 @@ static int can_frame_process_write_data(int s, char* canport, AndriodProduct* pr
 
 }
 
-// static void canfd_frame_process_write_data(int s, char* canport)
-// {
-//     // int required_mtu;//传输内容的最大传输内容
-//     // int mtu; // 发送数据长度
-//     // int enable_canfd = 1; // 开启关闭flag位
-
-
-//     char write_data[120];
-// 	//wrap_data(CPU_ID, CTRL_SEND_TTYS1_MAC);
-// 	write_data[0] = 0xAA;
-// 	write_data[1] = CTRL_SEND_TTYS1_MAC;
-// 	memcpy(write_data+2, CPU_ID, strlen(CPU_ID));
-// 	write_data[2+strlen(CPU_ID)] = 0x55;
-// 	write_data[3+strlen(CPU_ID)] = '\0';
-// 	printf("\n\t write_data:%s\n",write_data);
-// 	for(int i=0; i<strlen(write_data);i++)
-// 	{	
-// 		printf("%02x ", write_data[i]);
-// 	}
-
-//     /* configure can_id and can data length */
-//     struct canfd_frame frame_send;
-//     frame_send.can_id = 0x88;
-//     frame_send.len = strlen(write_data);
-//    // printf("%s ID=%#x data length=%d\n", ifr.ifr_name, frame_send.can_id, frame_send.can_dlc);
-//     printf("xx ID=%#x data length=%d\n", frame_send.can_id, frame_send.len);
-
-//     /* Sending data */
-//     if(write(s, &frame_send, sizeof(frame_send)) != sizeof(frame_send))
-//     {
-//     perror("Send failed");
-//      sleep(1);
-//    // close(s);
-//     return;
-//     //exit(-4);
-//     }
-//     sleep(1);
-
-
-// }
 
 
 void set_can_down(char* canport)

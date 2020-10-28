@@ -4,11 +4,12 @@
 #include "stdio.h"
 #include "string.h"
 
+#include <pthread.h>
+
+
+pthread_mutex_t mutex =  PTHREAD_MUTEX_INITIALIZER; //init mutex
 
 #define LENGTHBUF 1024
-
-
-
 #define DATA_HEAD (0xAA)
 #define DATA_TAIL (0x55)
 
@@ -58,53 +59,76 @@ DPStatus parse_data( unsigned char* in,  int length, unsigned char* out, int* ou
 }
 
 
-void process_data(unsigned char* data, int length,AndriodProduct* product)
+void process_data(unsigned char* data, int length,AndriodProduct* product, fsm_state_t* fsm)
 {
     switch (data[0])
     {
-    case CTRL_GET_TTYS1_MAC:
-        get_mac(data+1, length-1, product);
-        product->cur_cmd = CTRL_GET_TTYS1_MAC;
+    case CTRL_GET_MAC:
+        get_mac(data+1, length-1, product, fsm);
         break;
-    case CTRL_GET_TTYS3_MAC:
-        get_mac(data+1, length-1, product);
-        product->cur_cmd = CTRL_GET_TTYS3_MAC;
+    case CTRL_GET_END:
+        get_end(data+1, length-1, product, fsm);
         break;
-    case CTRL_GET_CAN0_MAC:
-        get_mac(data+1, length-1, product);
-        product->cur_cmd = CTRL_GET_CAN0_MAC;
-        break;
-    case CTRL_GET_CAN1_MAC:
-        get_mac(data+1, length-1, product);
-        product->cur_cmd = CTRL_GET_CAN1_MAC;
-        break;
+
     default:
         break;
     }
 
 }
 
-void get_mac(unsigned char* data, int length, AndriodProduct* product)
+void get_mac(unsigned char* data, int length, AndriodProduct* product, fsm_state_t* fsm)
 {
-
     printf("\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %s \t\t\n", __func__);
     // for(int i=0; i<length; i++)
     // {
     //     printf("\t\t %02x \t\t", data[i]);
     // }
+
+    if(*fsm != FSM_IDLE)
+        {
+            printf("!!!!!!!!!!!!!!wfk\n");
+
+            printf("Fsm:%d\n", *fsm);
+        }
     if( strlen(product->cpu_sn) != 0 && strncmp(product->cpu_sn, data, length))
     {
         printf("\t\tError The Android product is not same!!!\n");
         printf("product cpu sn:%s\n", product->cpu_sn);
         printf("data:%s\n",data);
-        product->SAMECPU = false;
+        product->SAMESN = false;
     }
     else if(strlen(product->cpu_sn) == 0)
     {
         memcpy(product->cpu_sn, data, length);
         printf("product cpu sn:%s\n", product->cpu_sn);
     }
-    STOPTEST = true;
+
+    *fsm = FSM_GET_MAC;
+}
+
+void get_end(unsigned char* data, int length, AndriodProduct* product, fsm_state_t* fsm)
+{
+
+    printf("\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %s \t\t\n", __func__);
+
+    *fsm = FSM_GET_END;
+    // for(int i=0; i<length; i++)
+    // {
+    //     printf("\t\t %02x \t\t", data[i]);
+    // }
+    // if( strlen(product->cpu_sn) != 0 && strncmp(product->cpu_sn, data, length))
+    // {
+    //     printf("\t\tError The Android product is not same!!!\n");
+    //     printf("product cpu sn:%s\n", product->cpu_sn);
+    //     printf("data:%s\n",data);
+    //     product->SAMESN = false;
+    // }
+    // else if(strlen(product->cpu_sn) == 0)
+    // {
+    //     memcpy(product->cpu_sn, data, length);
+    //     printf("product cpu sn:%s\n", product->cpu_sn);
+    // }
+    // STOPTEST = true;
     //save_data(data, data);
 }
 
@@ -139,7 +163,7 @@ void save_data(unsigned char* data, unsigned char* name)
 
 }
 
-void save_test_result(AndriodProduct* product)
+void product_save_result(AndriodProduct* product)
 {
     printf("\n** \t\t %s\n",__func__);
     FILE *fp;
@@ -171,7 +195,45 @@ void save_test_result(AndriodProduct* product)
     free(filename);
 }
 
+static bool  product_test_complete(AndriodProduct* product)
+{
+    if(product->SAMESN && product->TTYS1 && product->TTYS3 && product->CAN0 && product->CAN1)
+    {
+        return true;
+    }
+    
+    return false;
+}
+
+
+void product_clear(AndriodProduct* product)
+{
+    memset(product->cpu_sn, 0, 20);
+    product->SAMESN = true;
+    product->TTYS1 = FSM_IDLE;
+    product->TTYS3 = FSM_IDLE;
+    product->CAN0 = FSM_IDLE;
+    product->CAN1 = FSM_IDLE;
+}
+
 void save_process_t(void* params)
 {
+
+    parameters *data = (parameters*) params;
+	printf_func_mark(__func__);
+
+
+    while(1)
+    {
+        //
+        pthread_mutex_lock(&mutex);
+        if(product_test_complete(data->product))
+        {
+            product_save_result(data->product);
+            product_clear(data->product);
+        }
+        pthread_mutex_unlock(&mutex);
+
+    }
 
 }
