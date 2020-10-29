@@ -58,7 +58,7 @@ void* saveValue;
 
 // ====== Initialize the thread ======
 pthread_create(&thread_ttys1, NULL, serial_process_t, (void *)paramTTYS1);
-pthread_create(&thread_ttys3, NULL, serial_ttyS3_process_t, (void *)paramTTYS3);
+pthread_create(&thread_ttys3, NULL, serial_process_t, (void *)paramTTYS3);
 pthread_create(&thread_can0, NULL, can_process_t, (void *)paramCAN0);
 pthread_create(&thread_can1, NULL, can_process_t, (void *)paramCAN1);
 pthread_create(&thread_save, NULL, save_process_t, (void *)paramSave);

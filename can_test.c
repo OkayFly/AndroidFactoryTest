@@ -16,13 +16,13 @@ extern bool STOPTEST;
 extern pthread_mutex_t mutex_sn;
 const int canfd_on = 1;
 
-static void reply_sn( AndriodProduct* product, int s,) // just use 8 bytes for write
+static void reply_sn( AndriodProduct* product, int s, fsm_state_t *fsm) // just use 8 bytes for write
 {
     //TODO cup sn number
-    printf("00000000000000000000000000000000000000000000000000000000000:%s\n", canport);
+    printf("00000000000000000000000000000000000000000000000000000000000:%s\n", __func__);
         unsigned char cpu_sn[20] = {0};
         pthread_mutex_lock (&mutex_sn);
-        memcopy(cpu_sn, product->cpu_sn, strlen(product->cpu_sn));
+        memcpy(cpu_sn, product->cpu_sn, strlen(product->cpu_sn));
         pthread_mutex_unlock (&mutex_sn);
         
         struct can_frame frame_send;
@@ -31,7 +31,7 @@ static void reply_sn( AndriodProduct* product, int s,) // just use 8 bytes for w
         /* configure can_id and can data length */
 	    frame_send.can_id = 0x88;
 		frame_send.can_dlc = 8;
-		printf("%s ID=%#x data length=%d\n", "ifr.ifr_name", frame_send.can_id, frame_send.can_dlc);
+		printf(" ID=%#x data length=%d\n", "ifr.ifr_name", frame_send.can_id, frame_send.can_dlc);
 		/* prepare data for sending: 0xAA,0x81,0x11,0x11,0x11,0x11,0x11,0x55 */
         printf("sizeof can_frame.data:%d\n",sizeof(frame_send.data));
 
@@ -109,9 +109,9 @@ static void reply_sn( AndriodProduct* product, int s,) // just use 8 bytes for w
 
 }
 
-static void reply_end( AndriodProduct* product, int s,) // just use 8 bytes for write
+static void reply_end( AndriodProduct* product, int s, fsm_state_t *fsm) // just use 8 bytes for write
 {
-    printf("00000000000000000000000000000000000000000000000000000000000:%s\n", canport);
+    printf("00000000000000000000000000000000000000000000000000000000000:%s\n",__func__);
 
         struct can_frame frame_send;
 
@@ -197,8 +197,7 @@ static void reply_end( AndriodProduct* product, int s,) // just use 8 bytes for 
 
 }
 
-static int can_frame_process_write_data( char* canport, AndriodProduct* product);
-static int can_process_read_data(AndriodProduct* product, char *buff, int *buff_len, int s, fsm_state_t *fsm)
+static int can_process_read_data(AndriodProduct* product, char *buff, int *buff_len, char* port, int s, fsm_state_t *fsm)
 {
     // struct timeval timeout, timeout_config = { 0, 0 }, *timeout_current = NULL;
     // timeout_config.tv_usec = 20000;//msecs// -T <msecs>  (terminate after <msecs> without any reception)\n"); //20s
@@ -283,20 +282,10 @@ static int can_process_read_data(AndriodProduct* product, char *buff, int *buff_
         // }
         process_data(data, data_length, product, fsm);
         if(*fsm != FSM_GET_END)
-            reply_sn(product, s); 
+            reply_sn(product, s, fsm); 
 
         memset(buff,0,1024);
 		*buff_len = 0;
-
-
-    }
-
-
-    // if(diff_ms(&current,&start_time) >= 1000 )//1s
-    // {
-    //     printf("\t\t Error %s time consuming >1s but can't read data\n", canport);
-    //     keepRead = false;
-    // }
 
 
 
@@ -452,83 +441,6 @@ void start_can(char* canport)
     judge_can_status(canport);
 }
 
-void can_process(char* canport, AndriodProduct* product)
-{
-    int s; // can raw socket
-    int i;
-    unsigned char number = 0;
-    int nbytes;
-    
-    pid_t pid = -1;
-
-    struct sockaddr_can addr;
-    struct ifreq ifr;   
-    struct can_filter rfilter[1];
-    struct can_frame frame;
-    struct can_frame frame_send;
-
-    start_can(canport);
-    printf("**\t ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~can_process:%s\n", canport);
-    printf("**\t serail_process:%s\n", canport);
-
-    //create socket
-    if ((s = socket(PF_CAN, SOCK_RAW, CAN_RAW)) < 0)
-	{
-	   perror("Create socket failed");
-	   return;
-	}
-
-    /* set up can interface */
-	strcpy(ifr.ifr_name, canport);
-	printf("can port is %s\n",ifr.ifr_name);
-
-    /* assign can device */
-	ioctl(s, SIOCGIFINDEX, &ifr);//指定can设备
-	addr.can_family = AF_CAN;
-	addr.can_ifindex = ifr.ifr_ifindex;
-
-    /* try to switch the socket into CAN FD mode */
-    setsockopt(s, SOL_CAN_RAW, CAN_RAW_FD_FRAMES, &canfd_on, sizeof(canfd_on));
-
-	/* bind can device */
-	if(bind(s, (struct sockaddr *)&addr, sizeof(addr)) < 0)//将套接字与can0绑定
-	{
-	     perror("Bind can device failed\n");
-	     close(s);
-	     return;
-	}
-
-    printf("** \t wait write cpu ID\n");
-	fflush(stdout);
-	struct timespec start_time, last_time, last_read, last_write;
-	clock_gettime(CLOCK_MONOTONIC, &start_time);
-	last_time = start_time;
-	last_read = start_time;
-	last_write = start_time;
-    while(1)
-    {
-        struct timespec current;
-		clock_gettime(CLOCK_MONOTONIC, &current);
-        can_process_read_data(s,canport, product);
-
-        
-		if(diff_ms(&current,&start_time) >= 10000 )//10s
-		{
-			printf("\t\t Error %s time consuming >10s but can't translate corrent data\n", canport);
-			STOPTEST = true;
-		}
-            
-	 }
-     STOPTEST = false;
-	close(s);
-	return ;
-}
-
-void can_test(AndriodProduct* product)
-{
-    can_process(CAN0Port, product);
-    can_process(CAN1Port, product);
-}
 
 
 
@@ -585,12 +497,12 @@ void can_process_t(void* params)
 	fflush(stdout);
 
     fsm_state_t* fsm;
-    if( !strcmp(serial_port, CAN0Port))
+    if( !strcmp(data->port, CAN0Port))
 	{
 		printf("@@@1\n");
 		fsm = &data->product->CAN0;
 	}
-	else if(!strcmp(serial_port, CAN1Port))
+	else if(!strcmp(data->port, CAN1Port))
 	{
 		printf("@@@1\n");
 		fsm = &data->product->CAN1;
@@ -601,21 +513,30 @@ void can_process_t(void* params)
 		printf("????????????????wtftttyCAN???\n");
 	}
 
+
+	printf("** \t wait receive cpu ID\n");
+	struct timespec  last_read;
+	clock_gettime(CLOCK_MONOTONIC, &last_read);
+	struct timespec current_time;
+    char can_buff[1024] = {0};
+	int  buff_len =0;
+
+
     while(1)
     {   
 
         switch (*fsm)
         {
         case FSM_IDLE:
-            if(can_process_read_data(data->product, serial_buff, &buff_len, s, fsm)== 0)
+            if(can_process_read_data(data->product, can_buff, &buff_len, data->port,  s, fsm)== 0)
                 clock_gettime(CLOCK_MONOTONIC, &last_read);
             break;
         case FSM_GET_MAC:
-            if(can_process_read_data(data->product, serial_buff, &buff_len, s, fsm)== 0)
+            if(can_process_read_data(data->product, can_buff, &buff_len, data->port, s, fsm)== 0)
                 clock_gettime(CLOCK_MONOTONIC, &last_read);
             break;
         case FSM_GET_END:
-            reply_end(data->product, s);
+            reply_end(data->product, s, fsm);
             wait_save(data->port);
             break;
         
@@ -623,14 +544,22 @@ void can_process_t(void* params)
             break;
         }
 
-        can_process_read_data(s,data->port, data->product);
         
+		clock_gettime(CLOCK_MONOTONIC, &current_time);
+		int  consum_tm = diff_ms(&current_time,&last_read);
+
+		if(consum_tm >= 20000 )//20s//还有一直受到垃圾消息  不能通过last_read
+		{
+			printf("\t\t Error %s time consuming >60s but can't receive corrent data\n", data->port);
+			clock_gettime(CLOCK_MONOTONIC, &last_read);
+			*fsm = FSM_IDLE;
+			memset(can_buff, 0, 1024);
+			buff_len = 0;
+		}
             
 	 }
 
 	close(s);
-	return 0;
-
-
+	return;
 
 }

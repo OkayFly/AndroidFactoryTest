@@ -26,3 +26,5 @@ Android Factory Test Server
 # Reference Project
     https://github.com/cbrake/linux-serial-test
 
+
+# 设定波特率9600，太高比如115200 应为mos管灵敏度，发送数据失败（硬件自动收发电路设计）

@@ -97,3 +97,23 @@ void wait_save(char* port)
 	printf("waite save[%s]\n",port);
 	usleep(1000);
 }
+
+
+void dump_data(unsigned char * b, int count)
+{
+	printf("%i bytes: ", count);
+	int i;
+	for (i=0; i < count; i++) {
+		printf("%02x ", b[i]);
+	}
+
+	printf("\n");
+}
+
+void dump_data_ascii(unsigned char * b, int count)
+{
+	int i;
+	for (i=0; i < count; i++) {
+		printf("%c", b[i]);
+	}
+}
