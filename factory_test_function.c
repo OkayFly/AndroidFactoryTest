@@ -94,8 +94,8 @@ void printf_func_mark(char* func)
 
 void wait_save(char* port)
 {
-	printf("waite save[%s]\n",port);
-	usleep(1000);
+	//printf("waite save[%s]\n",port);
+	usleep(100);
 }
 
 

@@ -105,7 +105,7 @@ static void reply_sn( AndriodProduct* product, int s, fsm_state_t *fsm) // just 
         return ;
         }
         printf("~~~~~~~~~~~~send over\n");
-        return 0;
+        return;
 
 }
 
@@ -193,50 +193,49 @@ static void reply_end( AndriodProduct* product, int s, fsm_state_t *fsm) // just
         return ;
         }
         printf("~~~~~~~~~~~~send over\n");
-        return 0;
+        return;
 
 }
 
-static int can_process_read_data(AndriodProduct* product, char *buff, int *buff_len, char* port, int s, fsm_state_t *fsm)
+static int can_process_read_data(parameters* param, char *buff, int *buff_len, char* port, int s, fsm_state_t *fsm)
 {
-    // struct timeval timeout, timeout_config = { 0, 0 }, *timeout_current = NULL;
-    // timeout_config.tv_usec = 20000;//msecs// -T <msecs>  (terminate after <msecs> without any reception)\n"); //20s
+    struct timeval timeout, timeout_config = { 0, 0 }, *timeout_current = NULL;
+    timeout_config.tv_usec = 1000;//msecs// -T <msecs>  (terminate after <msecs> without any reception)\n"); //20s
     
-    // //???????????
-    // timeout_config.tv_sec = timeout_config.tv_usec / 1000;
-    // timeout_config.tv_usec = (timeout_config.tv_usec % 1000) * 1000;
-    // timeout_current = &timeout;
+    //???????????
+    timeout_config.tv_sec = timeout_config.tv_usec / 1000;
+    timeout_config.tv_usec = (timeout_config.tv_usec % 1000) * 1000;
+    timeout_current = &timeout;
 
-    // fd_set rdfs;
+    fd_set rdfs;
 
     /* set filter for only receiving packet with can id 0x88 */
     struct can_frame frame;
     struct can_filter rfilter[1];
     rfilter[0].can_id = 0x88;
     rfilter[0].can_mask = CAN_SFF_MASK;
-    // if(setsockopt(s, SOL_CAN_RAW, CAN_RAW_FILTER, &rfilter, sizeof(rfilter)) < 0)
-    // {
-    //     perror("set receiving filter error\n");
-    //     close(s);
-    //     //exit(-3);
-    //     return -3;
-    // }
+    if(setsockopt(s, SOL_CAN_RAW, CAN_RAW_FILTER, &rfilter, sizeof(rfilter)) < 0)
+    {
+        perror("set receiving filter error\n");
+       // close(s);
+        //exit(-3);
+        return -3;
+    }
 
-        // FD_ZERO(&rdfs);
-        // FD_SET(s,&rdfs);
+        FD_ZERO(&rdfs);
+        FD_SET(s,&rdfs);
 
         
-		// if (timeout_current)
-		// *timeout_current = timeout_config;
-        // printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~select~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+		if (timeout_current)
+		*timeout_current = timeout_config;
+        printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~select~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
 
-        // //???????????s+1
-		// if ((select(s+1, &rdfs, NULL, NULL, timeout_current)) <= 0) {
-		// 	perror("select");
-        //     printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~Iiiiii~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
-		// 	keepRead = false;
-        //     continue;
-		// }
+        //???????????s+1
+		if ((select(s+1, &rdfs, NULL, NULL, timeout_current)) <= 0) {
+			perror("select");
+            printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~timeout_current~Iiiiii~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+            return -4;
+		}
 
     printf("\n\t~~~~~~~~~~~~~~~read\n\t");
 
@@ -270,7 +269,7 @@ static int can_process_read_data(AndriodProduct* product, char *buff, int *buff_
 
     if(parse_data(buff, *buff_len, data, &data_length) == DATA_PROCESS_SUCCESS)
     {
-        printf("=====================================>get data:%s, length[%d]\n",data, data_length);
+        printf("=====================================>%s, get data:%s, length[%d]\n",param->port, data, data_length);
         for(int i=0; i< data_length; i++)
         {
             printf("-------------------get data:%02x\n", data[i]);
@@ -280,10 +279,16 @@ static int can_process_read_data(AndriodProduct* product, char *buff, int *buff_
         // {
         // 	printf("\t\t %02x\t", data[i]);
         // }
-        process_data(data, data_length, product, fsm);
-        if(*fsm != FSM_GET_END)
-            reply_sn(product, s, fsm); 
+        process_data(data, data_length, param->product, fsm);
 
+        if(*fsm == FSM_GET_MAC)
+			reply_sn( param->product, s, fsm);
+		else if(*fsm == FSM_GET_END)
+			reply_end( param->product, s, fsm);
+		else
+		{
+			printf("can port:%s, fsm:%d\n", param->port, *fsm);
+		}
         memset(buff,0,1024);
 		*buff_len = 0;
 
@@ -470,7 +475,7 @@ void can_process_t(void* params)
     if ((s = socket(PF_CAN, SOCK_RAW, CAN_RAW)) < 0)
 	{
 	   perror("Create socket failed");
-	   return -1;
+	   return ;
 	}
 
     /* set up can interface */
@@ -490,7 +495,7 @@ void can_process_t(void* params)
 	{
 	     perror("Bind can device failed\n");
 	     close(s);
-	     return -1;
+	     return ;
 	}
 
     printf("** \t wait read cpu ID\n");
@@ -528,16 +533,18 @@ void can_process_t(void* params)
         switch (*fsm)
         {
         case FSM_IDLE:
-            if(can_process_read_data(data->product, can_buff, &buff_len, data->port,  s, fsm)== 0)
+            if(can_process_read_data(data, can_buff, &buff_len, data->port,  s, fsm)== 0)
                 clock_gettime(CLOCK_MONOTONIC, &last_read);
             break;
         case FSM_GET_MAC:
-            if(can_process_read_data(data->product, can_buff, &buff_len, data->port, s, fsm)== 0)
+            if(can_process_read_data(data, can_buff, &buff_len, data->port, s, fsm)== 0)
                 clock_gettime(CLOCK_MONOTONIC, &last_read);
             break;
         case FSM_GET_END:
-            reply_end(data->product, s, fsm);
-            wait_save(data->port);
+            if(can_process_read_data(data, can_buff, &buff_len, data->port, s, fsm)== 0)
+                clock_gettime(CLOCK_MONOTONIC, &last_read);
+            //reply_end(data->product, s, fsm);
+            // wait_save(data->port);
             break;
         
         default:
@@ -551,10 +558,12 @@ void can_process_t(void* params)
 		if(consum_tm >= 20000 )//20s//还有一直受到垃圾消息  不能通过last_read
 		{
 			printf("\t\t Error %s time consuming >60s but can't receive corrent data\n", data->port);
-			clock_gettime(CLOCK_MONOTONIC, &last_read);
-			*fsm = FSM_IDLE;
+			
+			*fsm = FSM_TEST_FAIL;
 			memset(can_buff, 0, 1024);
 			buff_len = 0;
+            usleep(1000000);
+            clock_gettime(CLOCK_MONOTONIC, &last_read);
 		}
             
 	 }

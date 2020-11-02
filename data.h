@@ -2,6 +2,9 @@
 #define __ANDROID_DATA_H__
 
 #include<stdbool.h>
+#include <pthread.h>
+#include <string.h>
+#include <sys/types.h>
 
 #define TTYS3Port "/dev/ttyS3"
 #define TTYS1Port "/dev/ttyS1"
@@ -36,6 +39,8 @@ typedef enum
     FSM_IDLE,
     FSM_GET_MAC,
     FSM_GET_END,
+    FSM_TEST_OK,
+    FSM_TEST_FAIL,
 }fsm_state_t;
 
 
@@ -61,12 +66,14 @@ typedef struct
 typedef enum {
     CTRL_GET_MAC = 0x80,
     CTRL_GET_END ,
+    CTRL_GET_IDLE,
 }ctrl_t;
 
 DPStatus parse_data( unsigned char* in,  int length,  unsigned char* out, int* out_length);
 void process_data( unsigned char* data, int length, AndriodProduct* product, fsm_state_t* serial_fsm);
 void get_sn( unsigned char* data, int length, AndriodProduct* AndriodProduct, fsm_state_t* serial_fsm);
 void get_end( unsigned char* data, int length, AndriodProduct* AndriodProduct, fsm_state_t* serial_fsm);
+void get_idle( unsigned char* data, int length, AndriodProduct* AndriodProduct, fsm_state_t* serial_fsm);
 
 void save_data(unsigned char* data, unsigned char* name);
 

@@ -55,3 +55,17 @@ https://cloud.tencent.com/developer/article/1021109
 
     //先只锁cpu-sn 其他用原子操作
 
+
+
+另：在Android NDK中是没有libpthread.a的，有关的功能实现已经被集成到了libc.a中，所以使用时不需要使用-lpthread，而应该使用-lc链接参数。
+// xx不让用锁 可以用
+LOCAL_PATH:= $(call my-dir)
+
+include $(CLEAR_VARS)
+LOCAL_SRC_FILES:= factory_test_server.c data.c factory_test_function.c serial_test.c can_test.c
+LOCAL_MODULE:= factory_test_server
+LOCAL_32_BIT_ONLY := true
+LOCAL_LDLIBS += -lc
+include $(BUILD_EXECUTABLE)
+
+#include $(BUILD_SHARD_LIBRARY)

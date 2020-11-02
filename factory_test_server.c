@@ -8,13 +8,14 @@
 #include "can_test.h"
 #include <pthread.h>
 #include <string.h>
-
+#include <sys/types.h>
 
 
 int main(int argc, char * argv[])
 {
 	// ====== create the product ====
-	AndriodProduct my_android = {'\0', FSM_IDLE, FSM_IDLE, FSM_IDLE, FSM_IDLE, true};
+	AndriodProduct my_android = {'\0', FSM_IDLE, FSM_IDLE, FSM_IDLE, FSM_IDLE, true};//????
+	my_android.SAMESN = true;
 	// ====== create their threads parameters ===
 	parameters *paramTTYS1 = (parameters*) malloc(sizeof(parameters));
 	memcpy(paramTTYS1->port, TTYS1Port, strlen(TTYS1Port));

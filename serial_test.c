@@ -325,7 +325,7 @@ static void reply_sn(AndriodProduct* product, int fd)
 
 
 
-static int serial_process_read_data(AndriodProduct* product, char * buff, int* buff_len, int fd, fsm_state_t* fsm)
+static int serial_process_read_data(parameters* param, char * buff, int* buff_len, int fd, fsm_state_t* fsm)
 {
 
 	unsigned char rb[95] = {};
@@ -358,16 +358,23 @@ static int serial_process_read_data(AndriodProduct* product, char * buff, int* b
 	if(parse_data(buff, *buff_len, data, &data_length) == DATA_PROCESS_SUCCESS)
 	{
 		
-		printf("get data:%s, length[%d]\n",data, data_length);
+		printf("uart port:%s, get data:%s, length[%d]\n",param->port,data, data_length);
 
 		for(int i=0; i<data_length; i++)
 		{
 			printf("\t\t %02x ", data[i]);
 		}
-		process_data(data, data_length, product, fsm);
+		process_data(data, data_length, param->product, fsm);
 
-		if(*fsm != FSM_GET_END)
-			reply_sn(product, fd);
+		if(*fsm == FSM_GET_MAC)
+			reply_sn(param->product, fd);
+		else if(*fsm == FSM_GET_END)
+			reply_end(param->product, fd);
+		else
+		{
+			printf("uart port:%s, fsm:%d\n", param->port,*fsm);
+		}
+		
 
 		memset(buff,0,1024);
 		*buff_len = 0;
@@ -489,16 +496,16 @@ void serial_process_t(void* params)
 			switch (*fsm)
 			{
 			case FSM_IDLE:
-				if(serial_process_read_data(data->product, serial_buff, &buff_len, serial_fd, fsm)== 0)
+				if(serial_process_read_data(data, serial_buff, &buff_len, serial_fd, fsm)== 0)
 					clock_gettime(CLOCK_MONOTONIC, &last_read);
 				break;
 			case FSM_GET_MAC:
-				if(serial_process_read_data(data->product, serial_buff, &buff_len, serial_fd, fsm)==0)
+				if(serial_process_read_data(data, serial_buff, &buff_len, serial_fd, fsm)==0)
 					clock_gettime(CLOCK_MONOTONIC, &last_read);
 				break;
 			case FSM_GET_END:
-				reply_end(data->product, serial_fd);
-				wait_save(data->port);
+				if(serial_process_read_data(data, serial_buff, &buff_len, serial_fd, fsm)==0)
+					clock_gettime(CLOCK_MONOTONIC, &last_read);
 				break;
 			
 			default:
@@ -514,10 +521,13 @@ void serial_process_t(void* params)
 		if(consum_tm >= 20000 )//20s//还有一直受到垃圾消息  不能通过last_read
 		{
 			printf("\t\t Error %s time consuming >60s but can't receive corrent data\n", data->port);
-			clock_gettime(CLOCK_MONOTONIC, &last_read);
-			*fsm = FSM_IDLE;
+			
+			*fsm = FSM_TEST_FAIL;
 			memset(serial_buff, 0, 1024);
 			buff_len = 0;
+			  usleep(1000000);
+
+			  clock_gettime(CLOCK_MONOTONIC, &last_read);
 		}
 		
 
