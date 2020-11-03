@@ -365,17 +365,18 @@ static int serial_process_read_data(parameters* param, char * buff, int* buff_le
 		// {
 		// 	printf("\t\t %02x ", data[i]);
 		// }
-		process_data(data, data_length, param, fsm);
-
-		if(*fsm == FSM_GET_MAC)
-			reply_sn(param, fd);
-		else if(*fsm == FSM_GET_END)
-			reply_end(param, fd);
-		else
+		if( process_data(data, data_length, param, fsm))
 		{
-			printf("uart port:%s, fsm:%d\n", param->port,*fsm);
-		}
+			if(*fsm == FSM_GET_MAC)
+				reply_sn(param, fd);
+			else if(*fsm == FSM_GET_END)
+				reply_end(param, fd);
+			else
+			{
+				printf("uart port:%s, fsm:%d\n", param->port,*fsm);
+			}
 		
+		}
 
 		memset(buff,0,1024);
 		*buff_len = 0;

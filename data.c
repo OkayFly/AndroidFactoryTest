@@ -60,27 +60,30 @@ DPStatus parse_data( unsigned char* in,  int length, unsigned char* out, int* ou
 }
 
 
-void process_data(unsigned char* data, int length, parameters* param, fsm_state_t* fsm)
+bool process_data(unsigned char* data, int length, parameters* param, fsm_state_t* fsm)
 {
+    bool ret = false;
     switch (data[0])
     {
     case CTRL_GET_MAC:
-        get_sn(data+1, length-1, param, fsm);
+        ret = get_sn(data+1, length-1, param, fsm);
         break;
     case CTRL_GET_END:
-        get_end(data+1, length-1, param, fsm);
+        ret = get_end(data+1, length-1, param, fsm);
         break;
     case CTRL_GET_IDLE:
-        get_idle(data+1, length-1, param, fsm);
+        ret = get_idle(data+1, length-1, param, fsm);
         break;  
 
     default:
         break;
     }
 
+    return ret;
+
 }
 
-void get_sn(unsigned char* data, int length, parameters* param, fsm_state_t* fsm)
+bool get_sn(unsigned char* data, int length, parameters* param, fsm_state_t* fsm)
 {
     
    // printf("\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %s \t\t\n", __func__);
@@ -92,7 +95,7 @@ void get_sn(unsigned char* data, int length, parameters* param, fsm_state_t* fsm
     if(*fsm != FSM_IDLE)
     {
         printf("\n***  XXXXXXXXXXXXXX%s:*fsm [%d] != FSM_IDLE wtf\n", param->port, *fsm);
-        return;
+        return false;
     }
     pthread_mutex_lock (&mutex_sn);
     if( strlen(param->product->cpu_sn) != 0 && strncmp(param->product->cpu_sn, data, length))
@@ -111,33 +114,37 @@ void get_sn(unsigned char* data, int length, parameters* param, fsm_state_t* fsm
 
     *fsm = FSM_GET_MAC;
     pthread_mutex_unlock (&mutex_sn);
+
+    return true;
 }
 
-void get_end(unsigned char* data, int length, parameters* param, fsm_state_t* fsm)
+bool get_end(unsigned char* data, int length, parameters* param, fsm_state_t* fsm)
 {
 
    // printf("\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> %s \t\t\n", __func__);
     if(*fsm != FSM_GET_MAC)
     {
         printf("\n***  XXXXXXXXXXXXXX%s:*fsm [%d] != FSM_GET_MAC wtf\n", param->port, *fsm);
-        return;
+        return false;
     }
 
     *fsm = FSM_GET_END;
 
+    return true;
 }
 
-void get_idle(unsigned char* data, int length, parameters* param, fsm_state_t* fsm)
+bool get_idle(unsigned char* data, int length, parameters* param, fsm_state_t* fsm)
 {
 
   
     if(*fsm != FSM_GET_END)
     {
         printf("\n***  XXXXXXXXXXXXXX%s:*fsm [%d] != FSM_GET_END wtf\n", param->port, *fsm);
-        return;
+        return false;
     }
 
     *fsm = FSM_TEST_OK;
+    return true;
 
 }
 

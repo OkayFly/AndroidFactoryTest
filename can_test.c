@@ -300,18 +300,21 @@ static int can_process_read_data(parameters* param, char *buff, int *buff_len, c
         // {
         // 	printf("\t\t %02x\t", data[i]);
         // }
-        process_data(data, data_length, param, fsm);
+        if(process_data(data, data_length, param, fsm))
+        {
+            if(*fsm == FSM_GET_MAC)
+                reply_sn( param, s, fsm);
+            else if(*fsm == FSM_GET_END)
+                reply_end( param, s, fsm);
+            else
+            {
+                printf("\n*** XXXXXXX%s: wfk  fsm:%d\n", param->port, *fsm);
+            }
 
-        if(*fsm == FSM_GET_MAC)
-			reply_sn( param, s, fsm);
-		else if(*fsm == FSM_GET_END)
-			reply_end( param, s, fsm);
-		else
-		{
-			printf("\n*** XXXXXXX%s: wfk  fsm:%d\n", param->port, *fsm);
-		}
+        }
         memset(buff,0,1024);
-		*buff_len = 0;
+        *buff_len = 0;
+
 
 
 
