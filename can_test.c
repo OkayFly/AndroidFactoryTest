@@ -12,188 +12,209 @@
 #include "data.h"
 #include <time.h>
 
-extern bool STOPTEST;
+extern bool HASCPUSN;
 extern pthread_mutex_t mutex_sn;
 const int canfd_on = 1;
 
-static void reply_sn( AndriodProduct* product, int s, fsm_state_t *fsm) // just use 8 bytes for write
+static void reply_sn( parameters* param, int s, fsm_state_t *fsm) // just use 8 bytes for write
 {
-    //TODO cup sn number
-    printf("00000000000000000000000000000000000000000000000000000000000:%s\n", __func__);
-        unsigned char cpu_sn[20] = {0};
-        pthread_mutex_lock (&mutex_sn);
-        memcpy(cpu_sn, product->cpu_sn, strlen(product->cpu_sn));
-        pthread_mutex_unlock (&mutex_sn);
-        
-        struct can_frame frame_send;
+    printf("-------%s:%s\n",param->port,__func__);
 
-        int cursor = 0;
-        /* configure can_id and can data length */
-	    frame_send.can_id = 0x88;
-		frame_send.can_dlc = 8;
-		printf(" ID=%#x data length=%d\n", "ifr.ifr_name", frame_send.can_id, frame_send.can_dlc);
-		/* prepare data for sending: 0xAA,0x81,0x11,0x11,0x11,0x11,0x11,0x55 */
-        printf("sizeof can_frame.data:%d\n",sizeof(frame_send.data));
+    unsigned char cpu_sn[20] = {0};
+    pthread_mutex_lock (&mutex_sn);
+    if( strlen(param->product->cpu_sn) != 0 )
+    {
+        memcpy(cpu_sn, param->product->cpu_sn, strlen(param->product->cpu_sn));
+    }
+    else
+    {
+        printf("\n***  XXXXXXXXXXXXXX%s:  strlen(param->product->cpu_sn) == 0 wtf\n", param->port);
+    }
 
-        //第一帧
-        frame_send.data[0] = 0xAA;
-        frame_send.data[1] = CTRL_GET_MAC;
-        for(int i=2;i<8;i++)//6
-        {
-            frame_send.data[i] = cpu_sn[cursor++];
-        }
-		for (int i=0; i<8; i++) 
-		{
-            printf("%02x ", frame_send.data[i]);
-		}
-		printf("success to Sent out\n");
-		/* Sending data */
-		if(write(s, &frame_send, sizeof(frame_send)) < 0)
-        {
-        perror("Send failed");
-        sleep(1);
-        //close(s);
-        //exit(-4);
-        return ;
-        }
+    pthread_mutex_unlock (&mutex_sn);
+
+    struct can_frame frame_send;
+
+    int cursor = 0;
+    /* configure can_id and can data length */
+    frame_send.can_id = 0x88;
+    frame_send.can_dlc = 8;
+    //printf(" ID=%#x data length=%d\n", "ifr.ifr_name", frame_send.can_id, frame_send.can_dlc);
+    /* prepare data for sending: 0xAA,0x81,0x11,0x11,0x11,0x11,0x11,0x55 */
+    //printf("sizeof can_frame.data:%d\n",sizeof(frame_send.data));
+
+    //第一帧
+    frame_send.data[0] = 0xAA;
+    frame_send.data[1] = CTRL_GET_MAC;
+    for(int i=2;i<8;i++)//6
+    {
+        frame_send.data[i] = cpu_sn[cursor++];
+    }
+    // for (int i=0; i<8; i++) 
+    // {
+    //     printf("%02x ", frame_send.data[i]);
+    // }
+    // printf("success to Sent out\n");
+    /* Sending data */
+    if(write(s, &frame_send, sizeof(frame_send)) < 0)
+    {
+    perror("Send failed");
+    sleep(1);
+    //close(s);
+    //exit(-4);
+    return ;
+    }
+    usleep(100);
+
+    //第2帧
+    for(int i=0;i<8;i++) //8
+    {
+        frame_send.data[i] =  cpu_sn[cursor++];
+    }
+    // for (int i=0; i<8; i++)
+    // {
+    //     printf("%02x ", frame_send.data[i]);
+    // }
+    // printf("success to Sent out\n");
+    /* Sending data */
+    if(write(s, &frame_send, sizeof(frame_send)) < 0)
+    {
+    perror("Send failed");
+    sleep(1);
+    //close(s);
+    //exit(-4);
+    return ;
+    }
+
         usleep(100);
 
-        //第2帧
-        for(int i=0;i<8;i++) //8
-        {
-            frame_send.data[i] =  cpu_sn[cursor++];
-        }
-		for (int i=0; i<8; i++)
-		{
-            printf("%02x ", frame_send.data[i]);
-		}
-		printf("success to Sent out\n");
-		/* Sending data */
-		if(write(s, &frame_send, sizeof(frame_send)) < 0)
-        {
-        perror("Send failed");
-        sleep(1);
-        //close(s);
-        //exit(-4);
-        return ;
-        }
+    //第3帧
+    frame_send.can_dlc = 3;  //2
+    frame_send.data[0] =  cpu_sn[cursor++];
+    frame_send.data[1] =  cpu_sn[cursor++];
+    frame_send.data[2] = 0x55;
 
-         usleep(100);
-
-        //第3帧
-        frame_send.can_dlc = 3;  //2
-        frame_send.data[0] =  cpu_sn[cursor++];
-        frame_send.data[1] =  cpu_sn[cursor++];
-        frame_send.data[2] = 0x55;
-
-     
-		for (int i=0; i<2; i++)
-		{
-		    // frame_send.data[i] = ((i+1)<<4) | (i+1);
-            //         frame_send.data[7] =number;
-		    // printf("%#x ", frame_send.data[i]);
-            printf("%02x ", frame_send.data[i]);
-		}
-		printf("success to Sent out\n");
-		/* Sending data */
-		if(write(s, &frame_send, sizeof(frame_send)) < 0)
-        {
-        perror("Send failed");
-        sleep(1);
-        //close(s);
-        //exit(-4);
-        return ;
-        }
-        printf("~~~~~~~~~~~~send over\n");
-        return;
+    
+    // for (int i=0; i<2; i++)
+    // {
+    //     // frame_send.data[i] = ((i+1)<<4) | (i+1);
+    //     //         frame_send.data[7] =number;
+    //     // printf("%#x ", frame_send.data[i]);
+    //     printf("%02x ", frame_send.data[i]);
+    // }
+    // printf("success to Sent out\n");
+    /* Sending data */
+    if(write(s, &frame_send, sizeof(frame_send)) < 0)
+    {
+    perror("Send failed");
+    sleep(1);
+    //close(s);
+    //exit(-4);
+    return ;
+    }
+    //printf("~~~~~~~~~~~~send over\n");
+    return;
 
 }
 
-static void reply_end( AndriodProduct* product, int s, fsm_state_t *fsm) // just use 8 bytes for write
+static void reply_end( parameters* param, int s, fsm_state_t *fsm) // just use 8 bytes for write
 {
-    printf("00000000000000000000000000000000000000000000000000000000000:%s\n",__func__);
+    printf("-------%s:%s\n",param->port,__func__);
 
-        struct can_frame frame_send;
+    unsigned char cpu_sn[20] = {0};
+    pthread_mutex_lock (&mutex_sn);
+    if( strlen(param->product->cpu_sn) != 0 )
+    {
+        memcpy(cpu_sn, param->product->cpu_sn, strlen(param->product->cpu_sn));
+    }
+    else
+    {
+        printf("\n***  XXXXXXXXXXXXXX%s:  strlen(param->product->cpu_sn) == 0 wtf\n", param->port);
+    }
 
-        int cursor = 0;
-        /* configure can_id and can data length */
-	    frame_send.can_id = 0x88;
-		frame_send.can_dlc = 8;
-		printf("%s ID=%#x data length=%d\n", "ifr.ifr_name", frame_send.can_id, frame_send.can_dlc);
-		/* prepare data for sending: 0xAA,0x81,0x11,0x11,0x11,0x11,0x11,0x55 */
-        printf("sizeof can_frame.data:%d\n",sizeof(frame_send.data));
+    pthread_mutex_unlock (&mutex_sn);
 
-        //第一帧
-        frame_send.data[0] = 0xAA;
-        frame_send.data[1] = CTRL_GET_END;
-        for(int i=2;i<8;i++)//6
-        {
-            frame_send.data[i] = product->cpu_sn[cursor++];
-        }
-		for (int i=0; i<8; i++) 
-		{
-            printf("%02x ", frame_send.data[i]);
-		}
-		printf("success to Sent out\n");
-		/* Sending data */
-		if(write(s, &frame_send, sizeof(frame_send)) < 0)
-        {
-        perror("Send failed");
-        sleep(1);
-        //close(s);
-        //exit(-4);
-        return ;
-        }
+    struct can_frame frame_send;
+
+    int cursor = 0;
+    /* configure can_id and can data length */
+    frame_send.can_id = 0x88;
+    frame_send.can_dlc = 8;
+    //printf("%s ID=%#x data length=%d\n", "ifr.ifr_name", frame_send.can_id, frame_send.can_dlc);
+    /* prepare data for sending: 0xAA,0x81,0x11,0x11,0x11,0x11,0x11,0x55 */
+   // printf("sizeof can_frame.data:%d\n",sizeof(frame_send.data));
+
+    //第一帧
+    frame_send.data[0] = 0xAA;
+    frame_send.data[1] = CTRL_GET_END;
+    for(int i=2;i<8;i++)//6
+    {
+        frame_send.data[i] = cpu_sn[cursor++];
+    }
+    // for (int i=0; i<8; i++) 
+    // {
+    //     printf("%02x ", frame_send.data[i]);
+    // }
+    // printf("success to Sent out\n");
+    /* Sending data */
+    if(write(s, &frame_send, sizeof(frame_send)) < 0)
+    {
+    perror("Send failed");
+    sleep(1);
+    //close(s);
+    //exit(-4);
+    return ;
+    }
+    usleep(100);
+
+    //第2帧
+    for(int i=0;i<8;i++) //8
+    {
+        frame_send.data[i] =  cpu_sn[cursor++];
+    }
+    // for (int i=0; i<8; i++)
+    // {
+    //     printf("%02x ", frame_send.data[i]);
+    // }
+    // printf("success to Sent out\n");
+    /* Sending data */
+    if(write(s, &frame_send, sizeof(frame_send)) < 0)
+    {
+    perror("Send failed");
+    sleep(1);
+    //close(s);
+    //exit(-4);
+    return ;
+    }
+
         usleep(100);
 
-        //第2帧
-        for(int i=0;i<8;i++) //8
-        {
-            frame_send.data[i] =  product->cpu_sn[cursor++];
-        }
-		for (int i=0; i<8; i++)
-		{
-            printf("%02x ", frame_send.data[i]);
-		}
-		printf("success to Sent out\n");
-		/* Sending data */
-		if(write(s, &frame_send, sizeof(frame_send)) < 0)
-        {
-        perror("Send failed");
-        sleep(1);
-        //close(s);
-        //exit(-4);
-        return ;
-        }
+    //第3帧
+    frame_send.can_dlc = 3;  //2
+    frame_send.data[0] =  cpu_sn[cursor++];
+    frame_send.data[1] =  cpu_sn[cursor++];
+    frame_send.data[2] = 0x55;
 
-         usleep(100);
-
-        //第3帧
-        frame_send.can_dlc = 3;  //2
-        frame_send.data[0] =  product->cpu_sn[cursor++];
-        frame_send.data[1] =  product->cpu_sn[cursor++];
-        frame_send.data[2] = 0x55;
-
-     
-		for (int i=0; i<2; i++)
-		{
-		    // frame_send.data[i] = ((i+1)<<4) | (i+1);
-            //         frame_send.data[7] =number;
-		    // printf("%#x ", frame_send.data[i]);
-            printf("%02x ", frame_send.data[i]);
-		}
-		printf("success to Sent out\n");
-		/* Sending data */
-		if(write(s, &frame_send, sizeof(frame_send)) < 0)
-        {
-        perror("Send failed");
-        sleep(1);
-        //close(s);
-        //exit(-4);
-        return ;
-        }
-        printf("~~~~~~~~~~~~send over\n");
-        return;
+    
+    // for (int i=0; i<2; i++)
+    // {
+    //     // frame_send.data[i] = ((i+1)<<4) | (i+1);
+    //     //         frame_send.data[7] =number;
+    //     // printf("%#x ", frame_send.data[i]);
+    //     printf("%02x ", frame_send.data[i]);
+    // }
+    // printf("success to Sent out\n");
+    /* Sending data */
+    if(write(s, &frame_send, sizeof(frame_send)) < 0)
+    {
+    perror("Send failed");
+    sleep(1);
+    //close(s);
+    //exit(-4);
+    return ;
+    }
+  //  printf("~~~~~~~~~~~~send over\n");
+    return;
 
 }
 
@@ -228,16 +249,16 @@ static int can_process_read_data(parameters* param, char *buff, int *buff_len, c
         
 		if (timeout_current)
 		*timeout_current = timeout_config;
-        printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~select~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+       // printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~select~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
 
         //???????????s+1
 		if ((select(s+1, &rdfs, NULL, NULL, timeout_current)) <= 0) {
-			perror("select");
-            printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~timeout_current~Iiiiii~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+			//perror("select");
+            //printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~timeout_current~Iiiiii~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
             return -4;
 		}
 
-    printf("\n\t~~~~~~~~~~~~~~~read\n\t");
+    //printf("\n\t~~~~~~~~~~~~~~~read\n\t");
 
     unsigned char data[95] = {0};
     int data_length;
@@ -246,15 +267,15 @@ static int can_process_read_data(parameters* param, char *buff, int *buff_len, c
         return -1;
 
     // printf("read datas:%s ID=%#x data length=%d\n", ifr.ifr_name, frame.can_id, frame.can_dlc);
-    printf("read datas:xx ID=%#x data length=%d\n", frame.can_id, frame.can_dlc);
-    for (int i=0; i < frame.can_dlc; i++)
-        printf("%#x ", frame.data[i]);
-    printf("\n");
+    // printf("read datas:xx ID=%#x data length=%d\n", frame.can_id, frame.can_dlc);
+    // for (int i=0; i < frame.can_dlc; i++)
+    //     printf("%#x ", frame.data[i]);
+    // printf("\n");
 
-    printf("read can data over\n");
+    // printf("read can data over\n");
     if(frame.can_dlc <=0 )
     {
-        printf("@@@@@@@@@@@%s__wtf\n");
+        printf("\n***  XXXXXXXXXXXXXX%s: frame.can_dlc <=0 wtf\n", param->port);
         return -2;
     }
     //put int serail buffer //TODO 超过了怎么说
@@ -269,25 +290,25 @@ static int can_process_read_data(parameters* param, char *buff, int *buff_len, c
 
     if(parse_data(buff, *buff_len, data, &data_length) == DATA_PROCESS_SUCCESS)
     {
-        printf("=====================================>%s, get data:%s, length[%d]\n",param->port, data, data_length);
-        for(int i=0; i< data_length; i++)
-        {
-            printf("-------------------get data:%02x\n", data[i]);
-        }
+        // printf("=====================================>%s, get data:%s, length[%d]\n",param->port, data, data_length);
+        // for(int i=0; i< data_length; i++)
+        // {
+        //     printf("-------------------get data:%02x\n", data[i]);
+        // }
 
         // for(int i=0; i<data_length; i++)
         // {
         // 	printf("\t\t %02x\t", data[i]);
         // }
-        process_data(data, data_length, param->product, fsm);
+        process_data(data, data_length, param, fsm);
 
         if(*fsm == FSM_GET_MAC)
-			reply_sn( param->product, s, fsm);
+			reply_sn( param, s, fsm);
 		else if(*fsm == FSM_GET_END)
-			reply_end( param->product, s, fsm);
+			reply_end( param, s, fsm);
 		else
 		{
-			printf("can port:%s, fsm:%d\n", param->port, *fsm);
+			printf("\n*** XXXXXXX%s: wfk  fsm:%d\n", param->port, *fsm);
 		}
         memset(buff,0,1024);
 		*buff_len = 0;
@@ -305,18 +326,15 @@ static int can_process_read_data(parameters* param, char *buff, int *buff_len, c
 
 static int can_frame_process_write_data(int s, char* canport, AndriodProduct* product) // just use 8 bytes for write
 {
-    printf("00000000000000000000000000000000000000000000000000000000000:%s\n", canport);
-
-
         struct can_frame frame_send;
 
         int cursor = 0;
         /* configure can_id and can data length */
 	    frame_send.can_id = 0x88;
 		frame_send.can_dlc = 8;
-		printf("%s ID=%#x data length=%d\n", "ifr.ifr_name", frame_send.can_id, frame_send.can_dlc);
-		/* prepare data for sending: 0xAA,0x81,0x11,0x11,0x11,0x11,0x11,0x55 */
-        printf("sizeof can_frame.data:%d\n",sizeof(frame_send.data));
+		// printf("%s ID=%#x data length=%d\n", "ifr.ifr_name", frame_send.can_id, frame_send.can_dlc);
+		// /* prepare data for sending: 0xAA,0x81,0x11,0x11,0x11,0x11,0x11,0x55 */
+        // printf("sizeof can_frame.data:%d\n",sizeof(frame_send.data));
 
         //第一帧
         frame_send.data[0] = 0xAA;
@@ -325,11 +343,11 @@ static int can_frame_process_write_data(int s, char* canport, AndriodProduct* pr
         {
             frame_send.data[i] = product->cpu_sn[cursor++];
         }
-		for (int i=0; i<8; i++) 
-		{
-            printf("%02x ", frame_send.data[i]);
-		}
-		printf("success to Sent out\n");
+		// for (int i=0; i<8; i++) 
+		// {
+        //     printf("%02x ", frame_send.data[i]);
+		// }
+		// printf("success to Sent out\n");
 		/* Sending data */
 		if(write(s, &frame_send, sizeof(frame_send)) < 0)
         {
@@ -339,21 +357,21 @@ static int can_frame_process_write_data(int s, char* canport, AndriodProduct* pr
         //exit(-4);
         return 2;
         }
-        usleep(100000);
+        usleep(100);
 
         //第2帧
         for(int i=0;i<8;i++) //8
         {
             frame_send.data[i] =  product->cpu_sn[cursor++];
         }
-		for (int i=0; i<8; i++)
-		{
-		    // frame_send.data[i] = ((i+1)<<4) | (i+1);
-            //         frame_send.data[7] =number;
-		    // printf("%#x ", frame_send.data[i]);
-            printf("%02x ", frame_send.data[i]);
-		}
-		printf("success to Sent out\n");
+		// for (int i=0; i<8; i++)
+		// {
+		//     // frame_send.data[i] = ((i+1)<<4) | (i+1);
+        //     //         frame_send.data[7] =number;
+		//     // printf("%#x ", frame_send.data[i]);
+        //     printf("%02x ", frame_send.data[i]);
+		// }
+		// printf("success to Sent out\n");
 		/* Sending data */
 		if(write(s, &frame_send, sizeof(frame_send)) < 0)
         {
@@ -364,7 +382,7 @@ static int can_frame_process_write_data(int s, char* canport, AndriodProduct* pr
         return 2;
         }
 
-         usleep(100000);
+         usleep(100);
 
         //第3帧
         frame_send.can_dlc = 3;  //2
@@ -373,14 +391,14 @@ static int can_frame_process_write_data(int s, char* canport, AndriodProduct* pr
         frame_send.data[2] = 0x55;
 
      
-		for (int i=0; i<2; i++)
-		{
-		    // frame_send.data[i] = ((i+1)<<4) | (i+1);
-            //         frame_send.data[7] =number;
-		    // printf("%#x ", frame_send.data[i]);
-            printf("%02x ", frame_send.data[i]);
-		}
-		printf("success to Sent out\n");
+		// for (int i=0; i<2; i++)
+		// {
+		//     // frame_send.data[i] = ((i+1)<<4) | (i+1);
+        //     //         frame_send.data[7] =number;
+		//     // printf("%#x ", frame_send.data[i]);
+        //     printf("%02x ", frame_send.data[i]);
+		// }
+		// printf("success to Sent out\n");
 		/* Sending data */
 		if(write(s, &frame_send, sizeof(frame_send)) < 0)
         {
@@ -390,7 +408,7 @@ static int can_frame_process_write_data(int s, char* canport, AndriodProduct* pr
         //exit(-4);
         return 2;
         }
-        printf("~~~~~~~~~~~~send over\n");
+        // printf("~~~~~~~~~~~~send over\n");
         return 0;
 
 
@@ -422,6 +440,10 @@ void set_can_up(canport)
     char* commit_buf[120] = {0};
     sprintf(commit_buf, " ip link set %s up", canport);
 
+    system(commit_buf);   
+    system(commit_buf);
+    system(commit_buf);
+    system(commit_buf);
     system(commit_buf);   
     system(commit_buf);
     system(commit_buf);
@@ -468,8 +490,6 @@ void can_process_t(void* params)
     struct can_frame frame_send;
 
     start_can(data->port);
-    printf("**\t ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~can_process:%s\n", data->port);
-    printf("**\t serail_process:%s\n", data->port);
 
     //create socket
     if ((s = socket(PF_CAN, SOCK_RAW, CAN_RAW)) < 0)
@@ -480,7 +500,7 @@ void can_process_t(void* params)
 
     /* set up can interface */
 	strcpy(ifr.ifr_name, data->port);
-	printf("can port is %s\n",ifr.ifr_name);
+	//printf("can port is %s\n",ifr.ifr_name);
 
     /* assign can device */
 	ioctl(s, SIOCGIFINDEX, &ifr);//指定can设备
@@ -498,28 +518,22 @@ void can_process_t(void* params)
 	     return ;
 	}
 
-    printf("** \t wait read cpu ID\n");
-	fflush(stdout);
-
     fsm_state_t* fsm;
     if( !strcmp(data->port, CAN0Port))
 	{
-		printf("@@@1\n");
 		fsm = &data->product->CAN0;
 	}
 	else if(!strcmp(data->port, CAN1Port))
 	{
-		printf("@@@1\n");
 		fsm = &data->product->CAN1;
 	}
 	else
 	{
-		//fsm = &data->product->TTYS1;
-		printf("????????????????wtftttyCAN???\n");
+		printf("\n***  XXXXXXXXXXXXXX%s: is not can0 or can1  wtf\n",data->port);
 	}
 
 
-	printf("** \t wait receive cpu ID\n");
+	printf("\n*** \t %s wait receive cpu ID\n", data->port);
 	struct timespec  last_read;
 	clock_gettime(CLOCK_MONOTONIC, &last_read);
 	struct timespec current_time;
@@ -543,8 +557,6 @@ void can_process_t(void* params)
         case FSM_GET_END:
             if(can_process_read_data(data, can_buff, &buff_len, data->port, s, fsm)== 0)
                 clock_gettime(CLOCK_MONOTONIC, &last_read);
-            //reply_end(data->product, s, fsm);
-            // wait_save(data->port);
             break;
         
         default:
@@ -553,6 +565,11 @@ void can_process_t(void* params)
 
         
 		clock_gettime(CLOCK_MONOTONIC, &current_time);
+        if(!HASCPUSN)
+		{
+			clock_gettime(CLOCK_MONOTONIC, &last_read);
+			continue;
+		}
 		int  consum_tm = diff_ms(&current_time,&last_read);
 
 		if(consum_tm >= 20000 )//20s//还有一直受到垃圾消息  不能通过last_read

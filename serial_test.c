@@ -25,7 +25,8 @@
 #include "factory_test_function.h"
 
 
-extern bool STOPTEST;
+
+extern bool HASCPUSN;
 extern pthread_mutex_t mutex_sn;
 
 
@@ -278,47 +279,47 @@ static bool setup_serial(int baud, char* port, int *fd)
 	return true;
 }
 
-static void reply_end(AndriodProduct* product, int fd)
+static void reply_end(parameters* param, int fd)
 {
-	printf("!~~~%s__\n",__func__);
+	printf("-------%s:%s\n",param->port,__func__);
 	char write_data[120];
 	write_data[0] = 0xAA;
 	write_data[1] = CTRL_GET_END;
 	pthread_mutex_lock (&mutex_sn);
-	memcpy(write_data+2, product->cpu_sn, strlen(product->cpu_sn));
-	write_data[2+strlen(product->cpu_sn)] = 0x55;
-	write_data[3+strlen(product->cpu_sn)] = '\0';
+	memcpy(write_data+2, param->product->cpu_sn, strlen(param->product->cpu_sn));
+	write_data[2+strlen(param->product->cpu_sn)] = 0x55;
+	write_data[3+strlen(param->product->cpu_sn)] = '\0';
 	pthread_mutex_unlock (&mutex_sn);
 	
-	printf("\n\t write_data:%s\n",write_data);
-	for(int i=0; i<strlen(write_data); i++)
-	{
-		printf("%02x ", write_data[i]);
-	}
+	// printf("\n\t write_data:%s\n",write_data);
+	// for(int i=0; i<strlen(write_data); i++)
+	// {
+	// 	printf("%02x ", write_data[i]);
+	// }
 	
-	printf("\n");
+	// printf("\n");
 	ssize_t c =write(fd, write_data, strlen(write_data));
-	usleep(50000);
+	usleep(100);
 }
 
-static void reply_sn(AndriodProduct* product, int fd)
+static void reply_sn(parameters* param, int fd)
 {
-	printf("~~~%s__\n",__func__);
+	printf("-------%s, %s__\n", param->port, __func__);
 	char write_data[120];
 	write_data[0] = 0xAA;
 	write_data[1] = CTRL_GET_MAC;
-	memcpy(write_data+2, product->cpu_sn, strlen(product->cpu_sn));
-	write_data[2+strlen(product->cpu_sn)] = 0x55;
-	write_data[3+strlen(product->cpu_sn)] = '\0';
-	printf("\n\t write_data:%s\n",write_data);
-	for(int i=0; i<strlen(write_data); i++)
-	{
-		printf("%02x ", write_data[i]);
-	}
+	memcpy(write_data+2, param->product->cpu_sn, strlen(param->product->cpu_sn));
+	write_data[2+strlen(param->product->cpu_sn)] = 0x55;
+	write_data[3+strlen(param->product->cpu_sn)] = '\0';
+	// printf("\n\t write_data:%s\n",write_data);
+	// for(int i=0; i<strlen(write_data); i++)
+	// {
+	// 	printf("%02x ", write_data[i]);
+	// }
 	
-	printf("\n");
+	// printf("\n");
 	ssize_t c =write(fd, write_data, strlen(write_data));
-	usleep(50000);
+	usleep(100);
 }
 
 
@@ -340,15 +341,15 @@ static int serial_process_read_data(parameters* param, char * buff, int* buff_le
 
 	}
 
-	printf(":c:%d\n",c);
-	fflush(stdout);
-	for(int i=0; i<c; i++)
-	{
-		printf("[%02x]",rb[i]);
-	}
+	// printf(":c:%d\n",c);
+	// fflush(stdout);
+	// for(int i=0; i<c; i++)
+	// {
+	// 	printf("[%02x]",rb[i]);
+	// }
 
-	printf("\n");
-	printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
+	// printf("\n");
+	// printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
 
 	//put int serail buffer //TODO 超过了怎么说
 	*buff_len = strlen(buff);
@@ -358,18 +359,18 @@ static int serial_process_read_data(parameters* param, char * buff, int* buff_le
 	if(parse_data(buff, *buff_len, data, &data_length) == DATA_PROCESS_SUCCESS)
 	{
 		
-		printf("uart port:%s, get data:%s, length[%d]\n",param->port,data, data_length);
+		// printf("uart port:%s, get data:%s, length[%d]\n",param->port,data, data_length);
 
-		for(int i=0; i<data_length; i++)
-		{
-			printf("\t\t %02x ", data[i]);
-		}
-		process_data(data, data_length, param->product, fsm);
+		// for(int i=0; i<data_length; i++)
+		// {
+		// 	printf("\t\t %02x ", data[i]);
+		// }
+		process_data(data, data_length, param, fsm);
 
 		if(*fsm == FSM_GET_MAC)
-			reply_sn(param->product, fd);
+			reply_sn(param, fd);
 		else if(*fsm == FSM_GET_END)
-			reply_end(param->product, fd);
+			reply_end(param, fd);
 		else
 		{
 			printf("uart port:%s, fsm:%d\n", param->port,*fsm);
@@ -378,6 +379,22 @@ static int serial_process_read_data(parameters* param, char * buff, int* buff_le
 
 		memset(buff,0,1024);
 		*buff_len = 0;
+	}
+	else
+	{
+		if(*fsm == FSM_IDLE)
+		{
+			;
+		}
+		else if(*fsm == FSM_GET_MAC)
+			reply_sn(param, fd);
+		else if(*fsm == FSM_GET_END)
+			reply_end(param, fd);
+		else
+		{
+			printf("uart port:%s, fsm:%d\n", param->port,*fsm);
+		}
+
 	}
 //printf("return 0\n");
 	return 0;
@@ -405,18 +422,16 @@ void serial_process_t(void* params)
 	fsm_state_t*  fsm;
 	if( !strcmp(serial_port, TTYS1Port))
 	{
-		printf("@@@1\n");
 		fsm = &data->product->TTYS1;
 	}
 	else if(!strcmp(serial_port, TTYS3Port))
 	{
-		printf("@@@1\n");
 		fsm = &data->product->TTYS3;
 	}
 	else
 	{
 		fsm = &data->product->TTYS1;
-		printf("????????????????wtftttyUSB0\n");
+		printf("\n***  XXXXXXXXXXXXXX%s: is not ttys1 or ttys3  wtf\n",serial_port);
 	}
 	
 
@@ -440,7 +455,7 @@ void serial_process_t(void* params)
 	}
 	if ((ss.flags & ASYNC_SPD_MASK) != ASYNC_SPD_CUST)
 	{
-		printf("222 wtf todo\n");
+		//printf("222 wtf todo\n");//TODO
 	}
 		//return;
 	ss.flags &= ~ASYNC_SPD_MASK;
@@ -448,7 +463,6 @@ void serial_process_t(void* params)
 		perror("TIOCSSERIAL failed");
 		//exit(1);
 	}
-	printf("3333\n");
 	if(!set_modem_lines(serial_fd, _cl_loopback ? TIOCM_LOOP : 0, TIOCM_LOOP))
 	{
 		perror("et_modem_lines");
@@ -474,7 +488,7 @@ void serial_process_t(void* params)
 	}
 
 
-	printf("** \t wait receive cpu ID\n");
+	printf("*** \t %s ------ wait receive cpu ID...\n", serial_port);
 	struct timespec  last_read;
 	clock_gettime(CLOCK_MONOTONIC, &last_read);
 
@@ -516,18 +530,25 @@ void serial_process_t(void* params)
 
 
 		clock_gettime(CLOCK_MONOTONIC, &current_time);
+
+		if(!HASCPUSN)
+		{
+			clock_gettime(CLOCK_MONOTONIC, &last_read);
+			continue;
+		}
+
 		int  consum_tm = diff_ms(&current_time,&last_read);
 
-		if(consum_tm >= 20000 )//20s//还有一直受到垃圾消息  不能通过last_read
+		if(consum_tm >= 60000 )//20s//还有一直受到垃圾消息  不能通过last_read
 		{
 			printf("\t\t Error %s time consuming >60s but can't receive corrent data\n", data->port);
 			
 			*fsm = FSM_TEST_FAIL;
 			memset(serial_buff, 0, 1024);
 			buff_len = 0;
-			  usleep(1000000);
+			usleep(1000000);
 
-			  clock_gettime(CLOCK_MONOTONIC, &last_read);
+			clock_gettime(CLOCK_MONOTONIC, &last_read);
 		}
 		
 
